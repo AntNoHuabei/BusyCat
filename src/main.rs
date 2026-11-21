@@ -229,6 +229,7 @@ impl Cat {
         }
         if frame < 12 {
             self.keyboard_paws(ui, rect, frame, now);
+            self.blend_shoulders(ui, rect, frame);
         }
         for b in &self.activity.bubbles {
             let t = now.duration_since(b.start).as_secs_f32() / 1.25;
@@ -270,6 +271,30 @@ impl Cat {
                 .galley(box_rect.min + Vec2::new(8.0, 5.0), galley, Color32::WHITE);
         }
     }
+    fn blend_shoulders(&self, ui: &egui::Ui, rect: Rect, frame: usize) {
+        // Restore the torso over the arm roots, fading down into the forearms.
+        // This hides the top caps and lets the shoulders emerge from the chest.
+        let mut mesh = egui::Mesh::with_texture(self.texture.id());
+        let scale = rect.width() / 512.0;
+        for (y, alpha) in [(268.0, 1.0), (302.0, 1.0), (313.0, 0.65), (327.0, 0.0)] {
+            for x in [164.0, 348.0] {
+                mesh.vertices.push(egui::epaint::Vertex {
+                    pos: rect.min + Vec2::new(x, y) * scale,
+                    uv: Pos2::new(
+                        ((frame % COLS) as f32 + x / 512.0) / COLS as f32,
+                        ((frame / COLS) as f32 + y / 512.0) / 3.0,
+                    ),
+                    color: Color32::WHITE.gamma_multiply(alpha * self.opacity),
+                });
+            }
+        }
+        for row in 0..3 {
+            let n = row * 2;
+            mesh.indices
+                .extend_from_slice(&[n, n + 1, n + 2, n + 1, n + 3, n + 2]);
+        }
+        ui.painter().add(egui::Shape::mesh(mesh));
+    }
     fn keyboard_paws(&self, ui: &egui::Ui, rect: Rect, frame: usize, now: Instant) {
         let scale = rect.width() / 512.0;
         let p = |x: f32, y: f32| rect.min + Vec2::new(x, y) * scale;
@@ -277,7 +302,7 @@ impl Cat {
             if viewer_left && (frame == 10 || frame == 11) {
                 continue;
             }
-            let shoulder = if viewer_left { 195.0 } else { 315.0 };
+            let shoulder = if viewer_left { 204.0 } else { 308.0 };
             let rest = if viewer_left { 211.0 } else { 301.0 };
             let contact = self.activity.paw_key(viewer_left, now);
             let (x, y, depth) = contact.map_or((rest, 354.0, 0.0), |([x, y], d)| {
@@ -294,7 +319,7 @@ impl Cat {
                 ui,
                 rect,
                 [
-                    Vec2::new(shoulder, 301.0),
+                    Vec2::new(shoulder, 288.0),
                     Vec2::new(shoulder, 340.0),
                     Vec2::new(x, y - 34.0),
                     Vec2::new(x, y - 7.0),
@@ -351,7 +376,7 @@ impl Cat {
             ui,
             rect,
             [
-                Vec2::new(195.0, 306.0),
+                Vec2::new(204.0, 288.0),
                 Vec2::new(172.0, 345.0),
                 center + Vec2::new(46.0, -26.0),
                 center - Vec2::new(0.0, 7.0),

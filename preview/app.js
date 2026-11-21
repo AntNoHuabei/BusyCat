@@ -60,9 +60,9 @@ function keyboardPaws(t,i){
   if(side&&(i===10||i===11))continue;
   const candidates=[...keyTimes].filter(([v,at])=>!leftHand(v)===side&&v!==119&&(held.has(v)||t-at<210)&&window.busycatKeys.some(k=>k.vk===v));
   candidates.sort((a,b)=>(held.has(b[0])-held.has(a[0]))||b[1]-a[1]||b[0]-a[0]);
-  const picked=candidates[0],shoulder=side?195:315;let x=side?211:301,y=354,d=0;
+  const picked=candidates[0],shoulder=side?204:308;let x=side?211:301,y=354,d=0;
   if(picked){const [v,at]=picked,[kx,ky,w,h]=window.busycatKeys.find(k=>k.vk===v).rect,age=(t-at)/1000;d=Math.max(0,Math.min(1,age/.03,held.has(v)?1:(.21-age)/.07));x=kx+w/2;y=ky+h/2-10-(1-d)*18;}
-  softLimb([[shoulder,301],[shoulder,340],[x,y-34],[x,y-7]],[x,y]);
+  softLimb([[shoulder,288],[shoulder,340],[x,y-34],[x,y-7]],[x,y]);
  }
 }
 function paint(t){
@@ -71,7 +71,7 @@ function paint(t){
  if(mouse.complete&&mouse.naturalWidth)ctx.drawImage(mouse,travel[0],travel[1],512,512);
  for(const b of[0,2]){const d=depth(b,t),outline=[[49.5,411.5],[68,411.5],[69,422],[68,430],[64,436],[57,439.5],[49.5,440.5]];for(const [dy,color]of[[1,'#6e7774'],[-1.2+d*2.4,`rgb(${239-d*17},${234-d*17},${221-d*17})`]]){ctx.beginPath();outline.forEach(([x,y],j)=>ctx[j?'lineTo':'moveTo']((b===0?x:96-x)+travel[0],y+dy+travel[1]));ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#a1aaa3';ctx.lineWidth=.8;ctx.stroke();}}
  if(atlas.complete&&atlas.naturalWidth)ctx.drawImage(atlas,(i%6)*512,Math.floor(i/6)*512,512,512,0,0,512,512);
- if(i===10||i===11){const l=depth(0,t),r=depth(2,t),x=48+travel[0]+(l-r)*1.3,y=423+travel[1]+Math.max(l,r)*3;softLimb([[195,306],[172,345],[x+46,y-26],[x,y-7]],[x,y]);}
+ if(i===10||i===11){const l=depth(0,t),r=depth(2,t),x=48+travel[0]+(l-r)*1.3,y=423+travel[1]+Math.max(l,r)*3;softLimb([[204,288],[172,345],[x+46,y-26],[x,y-7]],[x,y]);}
 
  // Look at the phone while idle, otherwise follow the cursor.
  const openness=i===3?0:i===2?.45:i===14?.3:[5,7,9,13].includes(i)?.85:1;
@@ -79,6 +79,12 @@ function paint(t){
  paintPhoneFace(t,i>=12);
  for(const k of window.busycatKeys||[]){if(held.has(k.vk)){ctx.fillStyle='#f1b03a';ctx.fillRect(...k.rect);}}
  keyboardPaws(t,i);
+ if(i<12&&atlas.complete&&atlas.naturalWidth){
+  for(let y=268;y<327;y++){
+   const alpha=y<=302?1:y<=313?1-(y-302)/11*.35:.65*(327-y)/14;
+   ctx.globalAlpha=alpha;ctx.drawImage(atlas,(i%6)*512+164,Math.floor(i/6)*512+y,184,1,164,y,184,1);
+  }ctx.globalAlpha=1;
+ }
  for(let j=bubbles.length-1;j>=0;j--){const b=bubbles[j],age=(t-b.t)/1250;if(age>=1){bubbles.splice(j,1);continue;}ctx.globalAlpha=Math.sqrt(1-age);ctx.font='17px system-ui';const w=ctx.measureText(b.text).width+16;let x=(b.mouse?.1+b.slot%3*.055:.24+b.slot*.075)*512-w/2;x=Math.max(0,Math.min(512-w,x));const y=338-age*159;ctx.fillStyle='#f5f0df';ctx.beginPath();ctx.roundRect(x,y,w,29,5);ctx.fill();ctx.fillStyle='#202733';ctx.fillText(b.text,x+8,y+20);ctx.globalAlpha=1;}
  requestAnimationFrame(paint);
 }
