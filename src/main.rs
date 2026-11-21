@@ -308,23 +308,31 @@ impl Cat {
                     Color32::from_black_alpha((depth * 85.0) as u8).gamma_multiply(self.opacity),
                 ));
             }
-            // The central fingertip ends exactly at the shared keycap center when down.
-            for (dx, dy) in [(-8.0, -2.0), (0.0, 0.0), (8.0, -2.0)] {
+            // A single soft paw silhouette: four shallow lobes, no extended fingers.
+            for (rx, ry, dy, c) in [
+                (17.0, 12.0, -1.0, Color32::from_rgb(20, 29, 40)),
+                (15.5, 10.5, -1.5, Color32::from_rgb(37, 46, 58)),
+            ] {
                 ui.painter().add(egui::Shape::ellipse_filled(
-                    p(x + dx, y + dy),
-                    Vec2::new(5.5, 10.0) * scale,
-                    Color32::from_rgb(20, 29, 40).gamma_multiply(self.opacity),
+                    p(x, y + dy),
+                    Vec2::new(rx, ry) * scale,
+                    c.gamma_multiply(self.opacity),
                 ));
+            }
+            for dx in [-10.5, -3.5, 3.5, 10.5] {
+                let tip_y = y + 6.5 - if dx == -10.5 || dx == 10.5 { 1.0 } else { 0.0 };
                 ui.painter().add(egui::Shape::ellipse_filled(
-                    p(x + dx, y + dy - 1.0),
-                    Vec2::new(4.0, 9.0) * scale,
+                    p(x + dx, tip_y),
+                    Vec2::new(4.5, 3.5) * scale,
                     Color32::from_rgb(37, 46, 58).gamma_multiply(self.opacity),
                 ));
+            }
+            for dx in [-7.0, 0.0, 7.0] {
                 ui.painter().line_segment(
-                    [p(x + dx, y + dy + 5.0), p(x + dx, y + dy + 8.0)],
+                    [p(x + dx, y + 6.0), p(x + dx, y + 8.0)],
                     egui::Stroke::new(
-                        1.2 * scale,
-                        Color32::from_rgb(82, 96, 108).gamma_multiply(self.opacity),
+                        0.8 * scale,
+                        Color32::from_rgb(64, 77, 89).gamma_multiply(self.opacity),
                     ),
                 );
             }
@@ -401,26 +409,26 @@ impl Cat {
         }
         // Two rounded toes contact the corresponding button; the wrist stays anchored.
         for (dx, depth) in [(-10.0, right), (10.0, left)] {
-            let toe = Vec2::new(48.0 + dx, 425.0 + depth * 3.4) + self.mouse_travel;
+            let toe = Vec2::new(48.0 + dx, 423.0 + depth * 3.4) + self.mouse_travel;
             ui.painter().add(egui::Shape::ellipse_filled(
                 p(toe.x, toe.y + 2.5),
-                Vec2::new(9.0, 12.0 - depth) * scale,
+                Vec2::new(10.0, 7.0 - depth) * scale,
                 Color32::from_black_alpha(65).gamma_multiply(self.opacity),
             ));
             ui.painter().add(egui::Shape::ellipse_filled(
                 p(toe.x, toe.y),
-                Vec2::new(8.0 + depth * 0.5, 11.0 - depth) * scale,
+                Vec2::new(10.0 + depth * 0.5, 6.5 - depth) * scale,
                 Color32::from_rgb(20, 29, 40).gamma_multiply(self.opacity),
             ));
             ui.painter().add(egui::Shape::ellipse_filled(
                 p(toe.x, toe.y - 1.0),
-                Vec2::new(6.5 + depth * 0.5, 9.0 - depth) * scale,
+                Vec2::new(8.5 + depth * 0.5, 5.5 - depth) * scale,
                 Color32::from_rgb(37, 46, 58).gamma_multiply(self.opacity),
             ));
             ui.painter().line_segment(
-                [p(toe.x - 1.0, toe.y + 5.0), p(toe.x - 1.5, toe.y + 8.0)],
+                [p(toe.x - 1.0, toe.y + 3.0), p(toe.x - 1.0, toe.y + 4.5)],
                 egui::Stroke::new(
-                    1.4 * scale,
+                    0.8 * scale,
                     Color32::from_rgb(82, 96, 108).gamma_multiply(self.opacity),
                 ),
             );
