@@ -5,6 +5,7 @@ mod keyboard_layout;
 mod phone_expression;
 mod settings_ui;
 mod tray;
+mod window_policy;
 
 use eframe::egui::{self, Color32, Pos2, Rect, Vec2};
 use interaction::{Interaction, key_rect};
@@ -51,6 +52,7 @@ struct Cat {
 
 impl Cat {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        window_policy::install(cc);
         // Windows supplies the CJK font; keep it out of the distributable.
         if let Ok(bytes) = std::fs::read("C:/Windows/Fonts/msyh.ttc") {
             let mut fonts = egui::FontDefinitions::default();
@@ -157,6 +159,7 @@ impl Cat {
             match action {
                 tray::Action::Settings => {
                     self.visible = true;
+                    window_policy::set_visible(true);
                     self.settings = true;
                     ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
                     ctx.send_viewport_cmd_to(
@@ -166,6 +169,7 @@ impl Cat {
                 }
                 tray::Action::ToggleVisible => {
                     self.visible = !self.visible;
+                    window_policy::set_visible(self.visible);
                     if !self.visible {
                         self.settings = false;
                     }
@@ -853,6 +857,7 @@ fn main() -> eframe::Result {
         renderer: eframe::Renderer::Glow,
         viewport: egui::ViewportBuilder::default()
             .with_title("BusyCat")
+            .with_taskbar(false)
             .with_icon(egui::IconData {
                 rgba: image::load_from_memory(include_bytes!("../assets/branding/busycat.png"))
                     .expect("logo")

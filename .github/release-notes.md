@@ -1,6 +1,8 @@
 BusyCat Windows 版本 / Windows release
 
 ### 简体中文
+- 隐藏任务栏和 Alt+Tab 图标，保留系统托盘入口。
+- 显示桌面（Win+D）或被最小化后自动恢复置顶，不抢键盘焦点；仍可从托盘主动隐藏。
 - 全局键鼠动画、对应键位落爪与按键气泡。
 - 连续摆尾、空闲刷手机和随机表情。
 - 中英文菜单、独立设置窗口、实时尺寸滑块。
@@ -9,6 +11,8 @@ BusyCat Windows 版本 / Windows release
 Windows 10/11 x64。下载 BusyCat.exe 直接运行，或解压 ZIP 后运行。首次启动默认 250 px；F8 切换鼠标穿透，双击猫咪或托盘图标打开设置。托盘图标可能位于隐藏图标区域。
 
 ### English
+- Hide the pet from the taskbar and Alt+Tab while keeping its system tray controls.
+- Restore the topmost pet after Show Desktop (Win+D) or minimization without taking keyboard focus; intentional tray hiding still works.
 - Global keyboard/mouse reactions, key-aware paws, and floating input labels.
 - Continuous tail movement, idle phone browsing, and random expressions.
 - Chinese/English menus, separate settings, and a live size slider.
@@ -18,7 +22,7 @@ Windows 10/11 x64. Run BusyCat.exe directly, or extract the ZIP and launch it. D
 
 ### Downloads
 - BusyCat.exe: standalone executable / 独立可执行文件
-- BusyCat-v0.1.0-windows-x64.zip: EXE + README + MIT LICENSE + icon / 便携包
+- BusyCat-v0.1.1-windows-x64.zip: EXE + README + MIT LICENSE + icon / 便携包
 - SHA256SUMS.txt: SHA-256 checksums / 校验值
 
 MIT License. Settings are not persisted yet / 设置暂不持久化。

@@ -1,6 +1,6 @@
 [package]
 name = "busycat"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "A tiny black cat that keeps you company while you type"
 license = "MIT"
@@ -16,6 +16,7 @@ codegen-units = 1
 strip = true
 
 [target."cfg(windows)".dependencies]
+raw-window-handle = "0.6"
 tray-icon = { version = "0.26.1", default-features = false }
 
 [build-dependencies]

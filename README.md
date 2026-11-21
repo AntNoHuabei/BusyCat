@@ -24,6 +24,7 @@ BusyCat 是一个用 Rust 编写的 Windows 桌面宠物。你打字时，小黑
 - **空闲刷手机**：默认 15 秒无操作后刷手机，随机出现偷笑、惊讶、嫌弃、困倦和害羞表情；有键鼠输入立即恢复。
 - **持续摆尾**：尾根固定、尾尖轻摆，打字和刷手机时有不同的节奏。
 - **独立设置窗口**：设置打开在猫咪旁边，支持简体中文 / English、尺寸滑块（250–800 px）、透明度和动作开关。默认尺寸为 250 px。
+- **桌面常驻**：隐藏任务栏与 Alt+Tab 图标；Win+D 显示桌面后自动恢复置顶，不抢输入焦点，仍支持从托盘主动隐藏。
 - **系统托盘**：显示 / 隐藏猫咪、打开设置、切换鼠标穿透、按键气泡、空闲刷手机，以及退出。
 - **透明置顶窗口**：可拖动摆放，F8 切换鼠标穿透。
 - **原创素材**：SVG、透明 PNG 和多尺寸 ICO 均随源码提供，应用、窗口和托盘图标保持一致。
@@ -128,6 +129,7 @@ BusyCat is a Windows desktop pet written in Rust. The little black cat reaches f
 - **Idle phone browsing**: after 15 seconds of inactivity by default, the cat browses its phone with random happy, surprised, unimpressed, sleepy, and shy expressions. Input wakes it immediately.
 - **Continuous tail movement**: the tail tip sways while its base stays anchored, with different rhythms for typing and phone browsing.
 - **Separate settings window**: opens beside the cat, with Simplified Chinese / English, a live size slider (250–800 px), opacity, and animation options. The default size is 250 px.
+- **Desktop presence**: hidden from the taskbar and Alt+Tab; automatically restores its topmost position after Win+D without taking input focus. You can still hide it through the tray.
 - **System tray controls**: show / hide the cat, open settings, toggle click-through, key labels, idle phone browsing, or quit.
 - **Transparent, always-on-top window**: drag it around and toggle click-through with F8.
 - **Original artwork**: editable SVGs, transparent PNGs, and a multi-resolution ICO are included, with matching application, window, and tray icons.

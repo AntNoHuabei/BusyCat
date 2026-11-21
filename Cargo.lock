@@ -162,10 +162,11 @@ checksum = "87a0cf66fd1eb2fb7b822cb78370d82303750809bc6ba855f3f58e517d3238db"
 
 [[package]]
 name = "busycat"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "eframe",
  "image",
+ "raw-window-handle",
  "tray-icon",
  "winresource",
 ]
