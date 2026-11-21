@@ -14,3 +14,9 @@ opt-level = "s"
 lto = true
 codegen-units = 1
 strip = true
+
+[target."cfg(windows)".dependencies]
+tray-icon = { version = "0.26.1", default-features = false }
+
+[build-dependencies]
+winresource = "0.1.34"

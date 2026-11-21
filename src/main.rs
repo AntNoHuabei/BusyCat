@@ -4,6 +4,7 @@ mod interaction;
 mod keyboard_layout;
 mod phone_expression;
 mod settings_ui;
+mod tray;
 
 use eframe::egui::{self, Color32, Pos2, Rect, Vec2};
 use interaction::{Interaction, key_rect};
@@ -16,6 +17,9 @@ const ATLAS: &[u8] = include_bytes!("../assets/cat/atlas.png");
 const COLS: usize = 6;
 
 struct Cat {
+    tray: Option<tray::Tray>,
+    visible: bool,
+    tray_error: Option<String>,
     texture: egui::TextureHandle,
     mouse_texture: egui::TextureHandle,
     tail_texture: egui::TextureHandle,
@@ -107,7 +111,14 @@ impl Cat {
             )
         })
         .collect();
+        let (tray, tray_error) = match tray::Tray::new(cc.egui_ctx.clone()) {
+            Ok(tray) => (Some(tray), None),
+            Err(error) => (None, Some(error)),
+        };
         Self {
+            tray,
+            tray_error,
+            visible: true,
             tail_texture,
             tail_phase: 0.0,
             tail_amplitude: 12.0,
@@ -135,6 +146,46 @@ impl Cat {
             mouse_feedback: true,
             gaze: Vec2::ZERO,
             mouse_travel: Vec2::ZERO,
+        }
+    }
+    fn tray_events(&mut self, ctx: &egui::Context) {
+        let actions = self
+            .tray
+            .as_ref()
+            .map_or_else(Vec::new, |tray| tray.actions());
+        for action in actions {
+            match action {
+                tray::Action::Settings => {
+                    self.visible = true;
+                    self.settings = true;
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                    ctx.send_viewport_cmd_to(
+                        egui::ViewportId::from_hash_of("busycat-settings"),
+                        egui::ViewportCommand::Focus,
+                    );
+                }
+                tray::Action::ToggleVisible => {
+                    self.visible = !self.visible;
+                    if !self.visible {
+                        self.settings = false;
+                    }
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(self.visible));
+                }
+                tray::Action::TogglePassthrough => {
+                    self.passthrough = !self.passthrough;
+                    ctx.send_viewport_cmd(egui::ViewportCommand::MousePassthrough(
+                        self.passthrough,
+                    ));
+                }
+                tray::Action::ToggleLabels => {
+                    self.activity.labels = !self.activity.labels;
+                    if !self.activity.labels {
+                        self.activity.bubbles.clear();
+                    }
+                }
+                tray::Action::TogglePhone => self.activity.idle_phone = !self.activity.idle_phone,
+                tray::Action::Quit => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+            }
         }
     }
     fn events(&mut self, ctx: &egui::Context) {
@@ -518,6 +569,7 @@ impl eframe::App for Cat {
         [0.0; 4]
     }
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
+        self.tray_events(ctx);
         self.events(ctx);
         let now = Instant::now();
         self.demo_tick(now);
@@ -646,6 +698,15 @@ impl eframe::App for Cat {
                             &self.status
                         });
                         ui.add_space(8.0);
+                        if let Some(error) = &self.tray_error {
+                            ui.colored_label(
+                                Color32::from_rgb(190, 90, 70),
+                                format!(
+                                    "{}: {error}",
+                                    lang.text("托盘初始化失败", "Tray initialization failed")
+                                ),
+                            );
+                        }
                         ui.label(lang.text("猫咪尺寸（实时预览）", "Cat size (live preview)"));
                         if ui
                             .add(
@@ -760,6 +821,15 @@ impl eframe::App for Cat {
             self.pending_size = None;
             self.last_resize = now;
         }
+        if let Some(tray) = &mut self.tray {
+            tray.sync(
+                self.language,
+                self.visible,
+                self.passthrough,
+                self.activity.labels,
+                self.activity.idle_phone,
+            );
+        }
         ctx.request_repaint_after(Duration::from_millis(33));
     }
 }
@@ -783,6 +853,14 @@ fn main() -> eframe::Result {
         renderer: eframe::Renderer::Glow,
         viewport: egui::ViewportBuilder::default()
             .with_title("BusyCat")
+            .with_icon(egui::IconData {
+                rgba: image::load_from_memory(include_bytes!("../assets/branding/busycat.png"))
+                    .expect("logo")
+                    .to_rgba8()
+                    .into_raw(),
+                width: 256,
+                height: 256,
+            })
             .with_inner_size([250.0, 250.0])
             .with_min_inner_size([250.0, 250.0])
             .with_decorations(false)

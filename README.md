@@ -78,3 +78,9 @@ Typing paws now target the center of the actual keycap using the shared keyboard
 Paw silhouettes use compact rounded pads, four shallow toe lobes, and short subtle creases rather than long fingers or extended claws.
 
 Settings open in a separate native window beside the cat. Menus support Simplified Chinese (default) and English; Windows supplies Microsoft YaHei for Chinese text. The size slider resizes the cat live from 250 to 800 px. Run with --settings to open settings immediately.
+
+## Logo and system tray
+
+The original BusyCat logo lives in `assets/branding/busycat.svg`; run `python tools/generate_logo.py` to rebuild PNG and multi-resolution ICO files. The EXE embeds the icon through `build.rs` and the window and system tray use matching artwork.
+
+On Windows, right-click the system tray icon for Settings, Show cat, Click-through (F8), Show key labels, Browse phone when idle, and Quit. Double-click the tray icon to restore the cat and open settings. Menu labels follow the selected Chinese/English language and checkmarks follow the current settings. Quitting removes the tray icon; the tray library also restores it after Explorer restarts. If Windows places the icon in the overflow area, expand the tray arrow to find it.

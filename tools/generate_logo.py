@@ -1,0 +1,36 @@
+"""BusyCat original vector logo and Windows icon sizes."""
+from pathlib import Path
+import io
+import pymupdf
+from PIL import Image,ImageDraw
+ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'assets'/'branding';OUT.mkdir(parents=True,exist_ok=True)
+svg='''<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+<rect x="8" y="8" width="240" height="240" rx="58" fill="#dceac9"/>
+<path d="M59 104 Q48 68 62 43 Q67 36 76 43 L101 62 Q128 54 155 62 L180 43 Q189 36 194 45 Q207 71 196 104 C208 133 187 170 159 178 L97 178 C66 167 47 139 59 104Z" fill="#252e3a" stroke="#141d28" stroke-width="5" stroke-linejoin="round"/>
+<path d="M67 55 L68 83 L88 68Z M188 55 L168 68 L188 84Z" fill="#a88a91"/>
+<ellipse cx="99" cy="111" rx="21" ry="24" fill="#c7e782"/>
+<ellipse cx="157" cy="111" rx="21" ry="24" fill="#c7e782"/>
+<ellipse cx="102" cy="114" rx="7" ry="17" fill="#15202b"/>
+<ellipse cx="154" cy="114" rx="7" ry="17" fill="#15202b"/>
+<circle cx="106" cy="104" r="4" fill="#f4ffdf"/><circle cx="158" cy="104" r="4" fill="#f4ffdf"/>
+<path d="M121 138 Q128 134 135 138 L128 144Z" fill="#c7a4a0"/>
+<path d="M128 145 Q123 153 118 149 M128 145 Q133 153 138 149" fill="none" stroke="#c7a4a0" stroke-width="3" stroke-linecap="round"/>
+<path d="M73 139 L47 135 M73 147 L45 150 M183 139 L209 135 M183 147 L211 150" fill="none" stroke="#7c8b96" stroke-width="3" stroke-linecap="round"/>
+<path d="M56 176 H200 L215 211 Q216 220 207 220 H49 Q40 220 42 211Z" fill="#24303c"/>
+<path d="M62 183 H194 L203 208 H53Z" fill="#9cadaa"/>
+<path d="M68 190 H77 M86 190 H95 M104 190 H113 M122 190 H131 M140 190 H149 M158 190 H167 M176 190 H185 M65 200 H78 M89 200 H165 M176 200 H190" fill="none" stroke="#f5f0df" stroke-width="5" stroke-linecap="round"/>
+<path d="M79 166 Q78 155 89 155 Q101 155 102 166 L103 181 Q99 190 89 189 Q79 190 77 181Z M154 166 Q154 155 166 155 Q178 155 178 166 L179 181 Q176 190 166 189 Q155 190 153 181Z" fill="#303b49" stroke="#141d28" stroke-width="3"/>
+</svg>'''
+(OUT/'busycat.svg').write_text(svg,encoding='utf-8')
+doc=pymupdf.open(stream=svg.encode(),filetype='svg');pdf=pymupdf.open('pdf',doc.convert_to_pdf());pix=pdf[0].get_pixmap(matrix=pymupdf.Matrix(4,4),alpha=True)
+im=Image.open(io.BytesIO(pix.tobytes('png'))).convert('RGBA');im.resize((256,256),Image.Resampling.LANCZOS).save(OUT/'busycat.png')
+im.save(OUT/'busycat.ico',sizes=[(16,16),(20,20),(24,24),(32,32),(40,40),(48,48),(64,64),(128,128),(256,256)])
+tray=im.resize((32,32),Image.Resampling.LANCZOS);tray.save(OUT/'tray.png')
+preview=Image.new('RGB',(640,320),'#f5f1e8');preview.paste(im.resize((256,256)),(32,32),im.resize((256,256)))
+draw=ImageDraw.Draw(preview)
+from PIL import ImageFont
+font=ImageFont.truetype('C:/Windows/Fonts/segoeuib.ttf',42);small=ImageFont.truetype('C:/Windows/Fonts/segoeui.ttf',16)
+draw.text((325,88),'BusyCat',fill='#252e3a',font=font);draw.text((327,146),'A little company.',fill='#657264',font=small)
+for x,size in [(330,16),(375,24),(425,32),(485,48)]:
+ icon=im.resize((size,size),Image.Resampling.LANCZOS);preview.paste(icon,(x,211-size//2),icon)
+preview.save(ROOT/'preview/logo.png')
