@@ -31,6 +31,9 @@ struct Cat {
     settings: bool,
     language: settings_ui::Language,
     cat_size: f32,
+    settings_position: Option<Pos2>,
+    pending_size: Option<f32>,
+    last_resize: Instant,
     passthrough: bool,
     demo: bool,
     demo_at: Instant,
@@ -120,6 +123,9 @@ impl Cat {
             settings: std::env::args().any(|a| a == "--settings"),
             language: settings_ui::Language::default(),
             cat_size: 420.0,
+            settings_position: None,
+            pending_size: None,
+            last_resize: Instant::now(),
             passthrough: false,
             demo: std::env::args().any(|a| a == "--demo"),
             demo_at: Instant::now(),
@@ -600,7 +606,10 @@ impl eframe::App for Cat {
             });
             let work = settings_ui::work_area(cat, ctx.pixels_per_point());
             let panel_size = Vec2::new(360.0, 520.0);
-            let position = settings_ui::position(cat, work, panel_size + Vec2::new(16.0, 40.0));
+            // Dock once on opening. Following every resize moves the slider under the cursor.
+            let position = *self.settings_position.get_or_insert_with(|| {
+                settings_ui::position(cat, work, panel_size + Vec2::new(16.0, 40.0))
+            });
             ctx.show_viewport_immediate(
                 id,
                 egui::ViewportBuilder::default()
@@ -646,10 +655,7 @@ impl eframe::App for Cat {
                             )
                             .changed()
                         {
-                            settings_ctx.send_viewport_cmd_to(
-                                egui::ViewportId::ROOT,
-                                egui::ViewportCommand::InnerSize(Vec2::splat(self.cat_size)),
-                            );
+                            self.pending_size = Some(self.cat_size);
                         }
                         ui.add(
                             egui::Slider::new(&mut self.opacity, 0.3..=1.0)
@@ -737,6 +743,22 @@ impl eframe::App for Cat {
                     });
                 },
             );
+        }
+        if !self.settings {
+            self.settings_position = None;
+        }
+        // Apply root-window changes outside the child viewport callback, at most 30 Hz.
+        if let Some(size) = self.pending_size
+            && now.saturating_duration_since(self.last_resize) >= Duration::from_millis(33)
+        {
+            let cat = ctx.input(|i| i.viewport().outer_rect);
+            if let (Some(cat), Some(panel)) = (cat, self.settings_position) {
+                let target = settings_ui::resize_away(cat, panel, Vec2::new(376.0, 560.0), size);
+                ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(target.min));
+            }
+            ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(Vec2::splat(size)));
+            self.pending_size = None;
+            self.last_resize = now;
         }
         ctx.request_repaint_after(Duration::from_millis(33));
     }

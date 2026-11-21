@@ -39,6 +39,19 @@ pub fn position(cat: Rect, work: Rect, size: Vec2) -> Pos2 {
             .clamp(work.top(), (work.bottom() - size.y).max(work.top())),
     )
 }
+// Keep the edge nearest the settings panel fixed so scaling never pushes into it.
+pub fn resize_away(cat: Rect, panel: Pos2, panel_size: Vec2, size: f32) -> Rect {
+    let panel = Rect::from_min_size(panel, panel_size);
+    let mut origin = cat.min;
+    if panel.left() >= cat.right() - 1.0 {
+        origin.x = cat.right() - size;
+    } else if panel.right() <= cat.left() + 1.0 {
+        origin.x = cat.left();
+    } else if panel.top() >= cat.bottom() - 1.0 {
+        origin.y = cat.bottom() - size;
+    }
+    Rect::from_min_size(origin, Vec2::splat(size))
+}
 #[cfg(windows)]
 pub fn work_area(cat: Rect, scale: f32) -> Rect {
     #[repr(C)]
@@ -92,6 +105,23 @@ pub fn work_area(_: Rect, _: f32) -> Rect {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn resizing_keeps_panel_and_adjacent_edge_fixed() {
+        let size = Vec2::new(376.0, 560.0);
+        for panel in [Pos2::new(936.0, 200.0), Pos2::new(108.0, 200.0)] {
+            let mut cat = Rect::from_min_size(Pos2::new(500.0, 200.0), Vec2::splat(420.0));
+            for value in [800.0, 250.0, 600.0, 420.0] {
+                let next = resize_away(cat, panel, size, value);
+                assert!(!next.intersects(Rect::from_min_size(panel, size)));
+                if panel.x > cat.right() {
+                    assert_eq!(next.right(), cat.right());
+                } else {
+                    assert_eq!(next.left(), cat.left());
+                }
+                cat = next;
+            }
+        }
+    }
     #[test]
     fn panel_uses_free_side() {
         let work = Rect::from_min_size(Pos2::ZERO, Vec2::new(1920.0, 1080.0));
