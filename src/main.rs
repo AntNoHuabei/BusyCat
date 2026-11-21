@@ -17,6 +17,7 @@ const COLS: usize = 6;
 struct Cat {
     texture: egui::TextureHandle,
     mouse_texture: egui::TextureHandle,
+    paw_texture: egui::TextureHandle,
     phone_faces: Vec<egui::TextureHandle>,
     phone_expression: phone_expression::PhoneExpression,
     input: Receiver<input::Input>,
@@ -56,6 +57,17 @@ impl Cat {
             egui::ColorImage::from_rgba_unmultiplied([512, 512], mouse.as_raw()),
             egui::TextureOptions::LINEAR,
         );
+        let paw = image::load_from_memory(include_bytes!("../assets/cat/cute-paw.png"))
+            .expect("cute paw")
+            .to_rgba8();
+        let paw_texture = cc.egui_ctx.load_texture(
+            "cute-paw",
+            egui::ColorImage::from_rgba_unmultiplied(
+                [paw.width() as usize, paw.height() as usize],
+                paw.as_raw(),
+            ),
+            egui::TextureOptions::LINEAR,
+        );
         let phone_faces = [
             &include_bytes!("../assets/cat/phone_happy_face.png")[..],
             &include_bytes!("../assets/cat/phone_surprise_face.png")[..],
@@ -77,6 +89,7 @@ impl Cat {
         })
         .collect();
         Self {
+            paw_texture,
             phone_faces,
             phone_expression: phone_expression::PhoneExpression::default(),
             texture,
@@ -308,34 +321,14 @@ impl Cat {
                     Color32::from_black_alpha((depth * 85.0) as u8).gamma_multiply(self.opacity),
                 ));
             }
-            // A single soft paw silhouette: four shallow lobes, no extended fingers.
-            for (rx, ry, dy, c) in [
-                (17.0, 12.0, -1.0, Color32::from_rgb(20, 29, 40)),
-                (15.5, 10.5, -1.5, Color32::from_rgb(37, 46, 58)),
-            ] {
-                ui.painter().add(egui::Shape::ellipse_filled(
-                    p(x, y + dy),
-                    Vec2::new(rx, ry) * scale,
-                    c.gamma_multiply(self.opacity),
-                ));
-            }
-            for dx in [-10.5, -3.5, 3.5, 10.5] {
-                let tip_y = y + 6.5 - if dx == -10.5 || dx == 10.5 { 1.0 } else { 0.0 };
-                ui.painter().add(egui::Shape::ellipse_filled(
-                    p(x + dx, tip_y),
-                    Vec2::new(4.5, 3.5) * scale,
-                    Color32::from_rgb(37, 46, 58).gamma_multiply(self.opacity),
-                ));
-            }
-            for dx in [-7.0, 0.0, 7.0] {
-                ui.painter().line_segment(
-                    [p(x + dx, y + 6.0), p(x + dx, y + 8.0)],
-                    egui::Stroke::new(
-                        0.8 * scale,
-                        Color32::from_rgb(64, 77, 89).gamma_multiply(self.opacity),
-                    ),
-                );
-            }
+            // The tiny rounded toe tips meet the key center; the wrist blends into the arm.
+            let paw_rect = Rect::from_min_size(p(x - 24.0, y - 29.5), Vec2::splat(48.0) * scale);
+            ui.painter().image(
+                self.paw_texture.id(),
+                paw_rect,
+                Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+                Color32::WHITE.gamma_multiply(self.opacity),
+            );
         }
     }
     fn mouse_buttons(&self, ui: &egui::Ui, rect: Rect, now: Instant) {
@@ -407,32 +400,20 @@ impl Cat {
                 color.gamma_multiply(self.opacity),
             );
         }
-        // Two rounded toes contact the corresponding button; the wrist stays anchored.
-        for (dx, depth) in [(-10.0, right), (10.0, left)] {
-            let toe = Vec2::new(48.0 + dx, 423.0 + depth * 3.4) + self.mouse_travel;
-            ui.painter().add(egui::Shape::ellipse_filled(
-                p(toe.x, toe.y + 2.5),
-                Vec2::new(10.0, 7.0 - depth) * scale,
-                Color32::from_black_alpha(65).gamma_multiply(self.opacity),
-            ));
-            ui.painter().add(egui::Shape::ellipse_filled(
-                p(toe.x, toe.y),
-                Vec2::new(10.0 + depth * 0.5, 6.5 - depth) * scale,
-                Color32::from_rgb(20, 29, 40).gamma_multiply(self.opacity),
-            ));
-            ui.painter().add(egui::Shape::ellipse_filled(
-                p(toe.x, toe.y - 1.0),
-                Vec2::new(8.5 + depth * 0.5, 5.5 - depth) * scale,
-                Color32::from_rgb(37, 46, 58).gamma_multiply(self.opacity),
-            ));
-            ui.painter().line_segment(
-                [p(toe.x - 1.0, toe.y + 3.0), p(toe.x - 1.0, toe.y + 4.5)],
-                egui::Stroke::new(
-                    0.8 * scale,
-                    Color32::from_rgb(82, 96, 108).gamma_multiply(self.opacity),
-                ),
-            );
-        }
+        let depth = left.max(right);
+        let paw_rect = Rect::from_min_size(
+            p(
+                24.0 + self.mouse_travel.x + (left - right) * 1.3,
+                397.0 + self.mouse_travel.y + depth * 3.0,
+            ),
+            Vec2::new(48.0 + depth, 48.0 - depth * 2.0) * scale,
+        );
+        ui.painter().image(
+            self.paw_texture.id(),
+            paw_rect,
+            Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+            Color32::WHITE.gamma_multiply(self.opacity),
+        );
     }
 }
 
