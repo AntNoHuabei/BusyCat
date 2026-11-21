@@ -106,6 +106,7 @@ def artwork(blink=0.0, left=0.0, right=0.0, tail=0.0, mouse=0, phone=0, layers=T
             for dx in (-10,0,10):
                 path(f'M {ex+dx} {ey+5} l -2 6','none','#52606c',2)
             continue
+        if not layers: continue
         px = 211 if is_left else 301
         py = 354 + 38*amount
         path(f'M {px-24} 296 Q {px-29} 325 {px-24} {py-5} Q {px-27} {py+16} {px} {py+18} Q {px+27} {py+17} {px+24} {py-3} Q {px+25} 326 {px+20} 300 Z','#252e3a','#141d28',3)

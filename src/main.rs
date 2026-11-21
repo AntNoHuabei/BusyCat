@@ -227,6 +227,9 @@ impl Cat {
                 }
             }
         }
+        if frame < 12 {
+            self.keyboard_paws(ui, rect, frame, now);
+        }
         for b in &self.activity.bubbles {
             let t = now.duration_since(b.start).as_secs_f32() / 1.25;
             let x = if b.mouse {
@@ -265,6 +268,66 @@ impl Cat {
             );
             ui.painter()
                 .galley(box_rect.min + Vec2::new(8.0, 5.0), galley, Color32::WHITE);
+        }
+    }
+    fn keyboard_paws(&self, ui: &egui::Ui, rect: Rect, frame: usize, now: Instant) {
+        let scale = rect.width() / 512.0;
+        let p = |x: f32, y: f32| rect.min + Vec2::new(x, y) * scale;
+        for viewer_left in [true, false] {
+            if viewer_left && (frame == 10 || frame == 11) {
+                continue;
+            }
+            let shoulder = if viewer_left { 195.0 } else { 315.0 };
+            let rest = if viewer_left { 211.0 } else { 301.0 };
+            let contact = self.activity.paw_key(viewer_left, now);
+            let (x, y, depth) = contact.map_or((rest, 354.0, 0.0), |([x, y], d)| {
+                (x, y - 10.0 - (1.0 - d) * 18.0, d)
+            });
+            let points = [
+                p(shoulder, 301.0),
+                p(shoulder, 340.0),
+                p(x, y - 34.0),
+                p(x, y - 10.0),
+            ];
+            for (w, c) in [
+                (34.0, Color32::from_rgb(20, 29, 40)),
+                (29.0, Color32::from_rgb(37, 46, 58)),
+            ] {
+                ui.painter()
+                    .add(egui::epaint::CubicBezierShape::from_points_stroke(
+                        points,
+                        false,
+                        Color32::TRANSPARENT,
+                        egui::Stroke::new(w * scale, c.gamma_multiply(self.opacity)),
+                    ));
+            }
+            if contact.is_some() {
+                ui.painter().add(egui::Shape::ellipse_filled(
+                    p(x, y + 11.0),
+                    Vec2::new(10.0, 2.5) * scale,
+                    Color32::from_black_alpha((depth * 85.0) as u8).gamma_multiply(self.opacity),
+                ));
+            }
+            // The central fingertip ends exactly at the shared keycap center when down.
+            for (dx, dy) in [(-8.0, -2.0), (0.0, 0.0), (8.0, -2.0)] {
+                ui.painter().add(egui::Shape::ellipse_filled(
+                    p(x + dx, y + dy),
+                    Vec2::new(5.5, 10.0) * scale,
+                    Color32::from_rgb(20, 29, 40).gamma_multiply(self.opacity),
+                ));
+                ui.painter().add(egui::Shape::ellipse_filled(
+                    p(x + dx, y + dy - 1.0),
+                    Vec2::new(4.0, 9.0) * scale,
+                    Color32::from_rgb(37, 46, 58).gamma_multiply(self.opacity),
+                ));
+                ui.painter().line_segment(
+                    [p(x + dx, y + dy + 5.0), p(x + dx, y + dy + 8.0)],
+                    egui::Stroke::new(
+                        1.2 * scale,
+                        Color32::from_rgb(82, 96, 108).gamma_multiply(self.opacity),
+                    ),
+                );
+            }
         }
     }
     fn mouse_buttons(&self, ui: &egui::Ui, rect: Rect, now: Instant) {

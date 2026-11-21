@@ -72,3 +72,5 @@ cargo build --release --locked
 ```
 
 `--check-input` 不打开界面，检查本机键盘与鼠标钩子能否注册。`--demo` 启动键鼠混合动画演示。8 项单元测试覆盖组合键释放、长按 F8、快速输入上限、鼠标点击/滚轮、鼠标移动边界、键帽不重叠、键盘朝向、闲置刷手机及输入恢复。
+
+Typing paws now target the center of the actual keycap using the shared keyboard layout. Each paw selects its most recently held key, supports chords, and lifts after short taps. Git history is initialized locally; no remote is configured.

@@ -24,6 +24,7 @@ pub struct Interaction {
     pub button_down_at: [Option<Instant>; 5],
     pub button_up_at: [Option<Instant>; 5],
     pub last_key: Option<(u32, Instant)>,
+    key_times: [Option<Instant>; 256],
     pub labels: bool,
     pub last_activity: Instant,
     pub idle_seconds: f32,
@@ -46,6 +47,7 @@ impl Default for Interaction {
             button_down_at: [None; 5],
             button_up_at: [None; 5],
             last_key: None,
+            key_times: [None; 256],
             labels: true,
             last_activity: Instant::now(),
             idle_seconds: 15.0,
@@ -86,6 +88,9 @@ impl Interaction {
                 }
                 self.keyboard_at = Some(now);
                 self.last_key = Some((vk, now));
+                if let Some(t) = self.key_times.get_mut(vk as usize) {
+                    *t = Some(now);
+                }
                 if is_left(vk) {
                     self.left = Some(now);
                 } else {
@@ -153,6 +158,36 @@ impl Interaction {
             Input::Status(_) => {}
         }
         false
+    }
+    // One paw can touch one key at a time. Prefer the newest held key on each side;
+    // when it is released, return to another held key instead of losing the chord.
+    pub fn paw_key(&self, viewer_left: bool, now: Instant) -> Option<([f32; 2], f32)> {
+        let candidate = |held_only: bool| {
+            self.key_times
+                .iter()
+                .enumerate()
+                .filter_map(|(vk, t)| t.map(|t| (vk as u32, t)))
+                .filter(|&(vk, t)| {
+                    vk != 0x77
+                        && is_left(vk) == viewer_left
+                        && key_rect(vk).is_some()
+                        && if held_only {
+                            self.keys.contains(&vk)
+                        } else {
+                            now.saturating_duration_since(t) < Duration::from_millis(210)
+                        }
+                })
+                .max_by_key(|&(vk, t)| (t, vk))
+        };
+        let (vk, t) = candidate(true).or_else(|| candidate(false))?;
+        let [x, y, w, h] = key_rect(vk)?;
+        let age = now.saturating_duration_since(t).as_secs_f32();
+        let depth = if self.keys.contains(&vk) {
+            (age / 0.03).clamp(0.0, 1.0)
+        } else {
+            (age / 0.03).min((0.21 - age) / 0.07).clamp(0.0, 1.0)
+        };
+        Some(([x + w * 0.5, y + h * 0.5], depth))
     }
     pub fn active_key(&self, vk: u32, now: Instant) -> bool {
         self.keys.contains(&vk)
@@ -344,6 +379,48 @@ pub fn key_rect(vk: u32) -> Option<[f32; 4]> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn paws_touch_actual_keys_and_preserve_chords() {
+        let t = Instant::now();
+        let mut s = Interaction::default();
+        for vk in [0x41, 0x4c, 0x31, 0xa2, 0x20] {
+            s.handle(&Input::Key { vk, down: true }, t);
+            let (point, depth) = s
+                .paw_key(is_left(vk), t + Duration::from_millis(60))
+                .unwrap();
+            let [x, y, w, h] = key_rect(vk).unwrap();
+            assert_eq!(point, [x + w / 2.0, y + h / 2.0]);
+            assert_eq!(depth, 1.0);
+            s.handle(&Input::Key { vk, down: false }, t);
+        }
+        assert!(s.paw_key(true, t + Duration::from_secs(1)).is_none());
+        s.handle(
+            &Input::Key {
+                vk: 0xa2,
+                down: true,
+            },
+            t,
+        );
+        s.handle(
+            &Input::Key {
+                vk: 0x53,
+                down: true,
+            },
+            t + Duration::from_millis(10),
+        );
+        s.handle(
+            &Input::Key {
+                vk: 0x53,
+                down: false,
+            },
+            t + Duration::from_millis(20),
+        );
+        let [x, y, w, h] = key_rect(0xa2).unwrap();
+        assert_eq!(
+            s.paw_key(false, t + Duration::from_secs(1)).unwrap().0,
+            [x + w / 2.0, y + h / 2.0]
+        );
+    }
     #[test]
     fn mouse_buttons_depress_and_release_independently() {
         let mut s = Interaction::default();
