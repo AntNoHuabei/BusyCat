@@ -7,6 +7,11 @@
 <p align="center">陪你敲键盘的小黑猫 · A little black cat to keep you company</p>
 <p align="center"><a href="#简体中文">简体中文</a> · <a href="#english">English</a> · <a href="LICENSE">MIT License</a></p>
 
+<p align="center">
+  <img src="preview/demo.gif" width="448" alt="BusyCat animation preview: typing, mouse movement, and idle phone browsing">
+</p>
+<p align="center">动画预览：打字 · 鼠标移动 · 空闲刷手机<br>Animation preview: typing · mouse movement · idle phone browsing</p>
+
 ## 简体中文
 
 BusyCat 是一个用 Rust 编写的 Windows 桌面宠物。你打字时，小黑猫会伸爪敲击对应键位；你操作鼠标时，它也会跟着动。空闲一会儿，它就拿出手机，时不时露出小表情。
