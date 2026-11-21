@@ -76,3 +76,5 @@ cargo build --release --locked
 Typing paws now target the center of the actual keycap using the shared keyboard layout. Each paw selects its most recently held key, supports chords, and lifts after short taps. Git history is initialized locally; no remote is configured.
 
 Paw silhouettes use compact rounded pads, four shallow toe lobes, and short subtle creases rather than long fingers or extended claws.
+
+Settings open in a separate native window beside the cat. Menus support Simplified Chinese (default) and English; Windows supplies Microsoft YaHei for Chinese text. The size slider resizes the cat live from 250 to 800 px. Run with --settings to open settings immediately.

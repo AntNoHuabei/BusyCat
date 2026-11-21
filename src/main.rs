@@ -3,6 +3,7 @@ mod input;
 mod interaction;
 mod keyboard_layout;
 mod phone_expression;
+mod settings_ui;
 
 use eframe::egui::{self, Color32, Pos2, Rect, Vec2};
 use interaction::{Interaction, key_rect};
@@ -28,6 +29,8 @@ struct Cat {
     status: String,
     start: Instant,
     settings: bool,
+    language: settings_ui::Language,
+    cat_size: f32,
     passthrough: bool,
     demo: bool,
     demo_at: Instant,
@@ -41,6 +44,19 @@ struct Cat {
 
 impl Cat {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        // Windows supplies the CJK font; keep it out of the distributable.
+        if let Ok(bytes) = std::fs::read("C:/Windows/Fonts/msyh.ttc") {
+            let mut fonts = egui::FontDefinitions::default();
+            fonts
+                .font_data
+                .insert("cjk".into(), egui::FontData::from_owned(bytes).into());
+            fonts
+                .families
+                .entry(egui::FontFamily::Proportional)
+                .or_default()
+                .push("cjk".into());
+            cc.egui_ctx.set_fonts(fonts);
+        }
         let image = image::load_from_memory(ATLAS)
             .expect("embedded cat atlas")
             .to_rgba8();
@@ -101,7 +117,9 @@ impl Cat {
             activity: Interaction::default(),
             status: "Connecting input…".into(),
             start: Instant::now(),
-            settings: false,
+            settings: std::env::args().any(|a| a == "--settings"),
+            language: settings_ui::Language::default(),
+            cat_size: 420.0,
             passthrough: false,
             demo: std::env::args().any(|a| a == "--demo"),
             demo_at: Instant::now(),
@@ -546,89 +564,179 @@ impl eframe::App for Cat {
                 if response.double_clicked() {
                     self.settings = !self.settings;
                 }
+                let lang = self.language;
                 response.context_menu(|ui| {
-                    if ui.button("Settings").clicked() {
+                    if ui.button(lang.text("设置", "Settings")).clicked() {
                         self.settings = true;
                         ui.close();
                     }
-                    ui.checkbox(&mut self.activity.labels, "Show pressed keys");
-                    if ui.button("Click through (F8 to restore)").clicked() {
+                    ui.checkbox(
+                        &mut self.activity.labels,
+                        lang.text("显示按键气泡", "Show pressed keys"),
+                    );
+                    if ui
+                        .button(lang.text("鼠标穿透（F8 恢复）", "Click through (F8 to restore)"))
+                        .clicked()
+                    {
                         self.passthrough = true;
                         self.settings = false;
                         ctx.send_viewport_cmd(egui::ViewportCommand::MousePassthrough(true));
                         ui.close();
                     }
-                    if ui.button("Quit BusyCat").clicked() {
+                    if ui
+                        .button(lang.text("退出 BusyCat", "Quit BusyCat"))
+                        .clicked()
+                    {
                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     }
                 });
             });
         if self.settings {
-            let mut open = true;
-            egui::Window::new("BusyCat · Input & animation")
-                .open(&mut open)
-                .default_pos([8.0, 8.0])
-                .default_width(300.0)
-                .resizable(false)
-                .show(ctx, |ui| {
-                    ui.small(&self.status);
-                    ui.separator();
-                    if ui
-                        .checkbox(&mut self.activity.labels, "Floating key / mouse labels")
-                        .changed()
-                        && !self.activity.labels
-                    {
-                        self.activity.bubbles.clear();
-                    }
-                    ui.checkbox(&mut self.highlights, "Highlight pressed keyboard keys");
-                    if ui
-                        .checkbox(&mut self.mouse_feedback, "Mouse movement, clicks and wheel")
-                        .changed()
-                    {
-                        self.activity.buttons.clear();
-                        self.activity.mouse_at = None;
-                        self.activity.wheel_at = None;
-                        self.activity.mouse_press = None;
-                        self.activity.button_down_at = [None; 5];
-                        self.activity.button_up_at = [None; 5];
-                    }
-                    if ui
-                        .checkbox(&mut self.demo, "Demo keyboard + mouse")
-                        .changed()
-                    {
-                        self.activity.keys.clear();
-                        self.activity.buttons.clear();
-                    }
-                    ui.add(egui::Slider::new(&mut self.opacity, 0.3..=1.0).text("Opacity"));
-                    ui.checkbox(&mut self.activity.idle_phone, "Browse phone when idle");
-                    ui.add(
-                        egui::Slider::new(&mut self.activity.idle_seconds, 5.0..=120.0)
-                            .text("Idle seconds"),
-                    );
-                    ui.horizontal(|ui| {
-                        for (label, size) in [("Small", 300.0), ("Medium", 420.0), ("Large", 560.0)]
-                        {
-                            if ui.button(label).clicked() {
-                                ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(
-                                    Vec2::splat(size),
-                                ));
-                            }
-                        }
-                    });
-                    ui.separator();
-                    ui.small("Drag to move · Double-click / right-click for settings");
-                    ui.small("F8: click-through · Key labels stay visible");
-                    ui.small("Labels show physical keys, not IME-composed text.");
-                    if ui.button("Hide settings").clicked() {
+            let id = egui::ViewportId::from_hash_of("busycat-settings");
+            let cat = ctx.input(|i| {
+                i.viewport()
+                    .outer_rect
+                    .unwrap_or(Rect::from_min_size(Pos2::ZERO, Vec2::splat(self.cat_size)))
+            });
+            let work = settings_ui::work_area(cat, ctx.pixels_per_point());
+            let panel_size = Vec2::new(360.0, 520.0);
+            let position = settings_ui::position(cat, work, panel_size + Vec2::new(16.0, 40.0));
+            ctx.show_viewport_immediate(
+                id,
+                egui::ViewportBuilder::default()
+                    .with_title(self.language.text("BusyCat 设置", "BusyCat Settings"))
+                    .with_inner_size(panel_size)
+                    .with_position(position)
+                    .with_resizable(false)
+                    .with_always_on_top(),
+                |settings_ctx, _| {
+                    if settings_ctx.input(|i| i.viewport().close_requested()) {
                         self.settings = false;
                     }
-                    if ui.button("Quit").clicked() {
-                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                    }
-                });
-            if !open {
-                self.settings = false;
-            }
+                    egui::CentralPanel::default().show(settings_ctx, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.label(self.language.text("语言", "Language"));
+                            ui.selectable_value(
+                                &mut self.language,
+                                settings_ui::Language::Chinese,
+                                "简体中文",
+                            );
+                            ui.selectable_value(
+                                &mut self.language,
+                                settings_ui::Language::English,
+                                "English",
+                            );
+                        });
+                        let lang = self.language;
+                        ui.separator();
+                        ui.small(if self.status == "Keyboard + mouse connected" {
+                            lang.text("键盘和鼠标已连接", "Keyboard + mouse connected")
+                        } else if self.status == "Connecting input…" {
+                            lang.text("正在连接输入…", "Connecting input…")
+                        } else {
+                            &self.status
+                        });
+                        ui.add_space(8.0);
+                        ui.label(lang.text("猫咪尺寸（实时预览）", "Cat size (live preview)"));
+                        if ui
+                            .add(
+                                egui::Slider::new(&mut self.cat_size, 250.0..=800.0)
+                                    .suffix(" px")
+                                    .step_by(1.0),
+                            )
+                            .changed()
+                        {
+                            settings_ctx.send_viewport_cmd_to(
+                                egui::ViewportId::ROOT,
+                                egui::ViewportCommand::InnerSize(Vec2::splat(self.cat_size)),
+                            );
+                        }
+                        ui.add(
+                            egui::Slider::new(&mut self.opacity, 0.3..=1.0)
+                                .text(lang.text("不透明度", "Opacity")),
+                        );
+                        ui.separator();
+                        if ui
+                            .checkbox(
+                                &mut self.activity.labels,
+                                lang.text("按键和鼠标气泡", "Floating key / mouse labels"),
+                            )
+                            .changed()
+                            && !self.activity.labels
+                        {
+                            self.activity.bubbles.clear();
+                        }
+                        ui.checkbox(
+                            &mut self.highlights,
+                            lang.text("键盘按键高亮", "Highlight pressed keyboard keys"),
+                        );
+                        if ui
+                            .checkbox(
+                                &mut self.mouse_feedback,
+                                lang.text(
+                                    "鼠标移动、点击和滚轮反馈",
+                                    "Mouse movement, clicks and wheel",
+                                ),
+                            )
+                            .changed()
+                        {
+                            self.activity.buttons.clear();
+                            self.activity.mouse_at = None;
+                            self.activity.wheel_at = None;
+                            self.activity.mouse_press = None;
+                            self.activity.button_down_at = [None; 5];
+                            self.activity.button_up_at = [None; 5];
+                        }
+                        if ui
+                            .checkbox(
+                                &mut self.demo,
+                                lang.text("演示键盘和鼠标动作", "Demo keyboard + mouse"),
+                            )
+                            .changed()
+                        {
+                            self.activity.keys.clear();
+                            self.activity.buttons.clear();
+                        }
+                        ui.separator();
+                        ui.checkbox(
+                            &mut self.activity.idle_phone,
+                            lang.text("空闲时刷手机", "Browse phone when idle"),
+                        );
+                        ui.add(
+                            egui::Slider::new(&mut self.activity.idle_seconds, 5.0..=120.0)
+                                .text(lang.text("空闲秒数", "Idle seconds")),
+                        );
+                        ui.separator();
+                        ui.small(lang.text(
+                            "拖动猫咪移动 · 双击或右键打开设置",
+                            "Drag cat to move · Double-click / right-click for settings",
+                        ));
+                        ui.small(lang.text(
+                            "F8：切换鼠标穿透，气泡仍可显示",
+                            "F8: toggle click-through; labels stay visible",
+                        ));
+                        ui.small(lang.text(
+                            "气泡显示物理按键，不显示输入法组词。",
+                            "Labels show physical keys, not IME-composed text.",
+                        ));
+                        ui.add_space(8.0);
+                        ui.horizontal(|ui| {
+                            if ui.button(lang.text("关闭设置", "Close settings")).clicked() {
+                                self.settings = false;
+                            }
+                            if ui
+                                .button(lang.text("退出 BusyCat", "Quit BusyCat"))
+                                .clicked()
+                            {
+                                settings_ctx.send_viewport_cmd_to(
+                                    egui::ViewportId::ROOT,
+                                    egui::ViewportCommand::Close,
+                                );
+                            }
+                        });
+                    });
+                },
+            );
         }
         ctx.request_repaint_after(Duration::from_millis(33));
     }
