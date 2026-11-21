@@ -17,6 +17,10 @@ const COLS: usize = 6;
 struct Cat {
     texture: egui::TextureHandle,
     mouse_texture: egui::TextureHandle,
+    tail_texture: egui::TextureHandle,
+    tail_phase: f32,
+    tail_amplitude: f32,
+    tail_tick: Instant,
     phone_faces: Vec<egui::TextureHandle>,
     phone_expression: phone_expression::PhoneExpression,
     input: Receiver<input::Input>,
@@ -56,6 +60,14 @@ impl Cat {
             egui::ColorImage::from_rgba_unmultiplied([512, 512], mouse.as_raw()),
             egui::TextureOptions::LINEAR,
         );
+        let tail = image::load_from_memory(include_bytes!("../assets/cat/tail.png"))
+            .expect("tail layer")
+            .to_rgba8();
+        let tail_texture = cc.egui_ctx.load_texture(
+            "tail",
+            egui::ColorImage::from_rgba_unmultiplied([512, 512], tail.as_raw()),
+            egui::TextureOptions::LINEAR,
+        );
         let phone_faces = [
             &include_bytes!("../assets/cat/phone_happy_face.png")[..],
             &include_bytes!("../assets/cat/phone_surprise_face.png")[..],
@@ -77,6 +89,10 @@ impl Cat {
         })
         .collect();
         Self {
+            tail_texture,
+            tail_phase: 0.0,
+            tail_amplitude: 12.0,
+            tail_tick: Instant::now(),
             phone_faces,
             phone_expression: phone_expression::PhoneExpression::default(),
             texture,
@@ -270,6 +286,44 @@ impl Cat {
             ui.painter()
                 .galley(box_rect.min + Vec2::new(8.0, 5.0), galley, Color32::WHITE);
         }
+    }
+    fn tail(&mut self, ui: &egui::Ui, rect: Rect, frame: usize, now: Instant) {
+        let dt = now
+            .saturating_duration_since(self.tail_tick)
+            .as_secs_f32()
+            .min(0.1);
+        self.tail_tick = now;
+        let (amplitude, speed) = if frame >= 12 {
+            (9.0, 1.25)
+        } else if (4..=9).contains(&frame) {
+            (19.0, 2.5)
+        } else {
+            (14.0, 1.75)
+        };
+        self.tail_amplitude += (amplitude - self.tail_amplitude) * (1.0 - (-dt * 3.0).exp());
+        self.tail_phase = (self.tail_phase + dt * speed) % std::f32::consts::TAU;
+        let mut mesh = egui::Mesh::with_texture(self.tail_texture.id());
+        for column in 0..=32 {
+            let x = 320.0 + column as f32 * 5.0;
+            let weight = ((x - 344.0) / 112.0).clamp(0.0, 1.0).powi(2);
+            let dy = (self.tail_phase.sin() + 0.18 * (self.tail_phase * 2.0 - 0.8).sin())
+                * self.tail_amplitude
+                * weight;
+            let dx = self.tail_phase.cos() * 3.0 * weight;
+            for y in [256.0, 410.0] {
+                mesh.vertices.push(egui::epaint::Vertex {
+                    pos: rect.min + Vec2::new(x + dx, y + dy) * (rect.width() / 512.0),
+                    uv: Pos2::new(x / 512.0, y / 512.0),
+                    color: Color32::WHITE.gamma_multiply(self.opacity),
+                });
+            }
+        }
+        for column in 0..32 {
+            let n = column * 2;
+            mesh.indices
+                .extend_from_slice(&[n, n + 1, n + 2, n + 1, n + 3, n + 2]);
+        }
+        ui.painter().add(egui::Shape::mesh(mesh));
     }
     fn blend_shoulders(&self, ui: &egui::Ui, rect: Rect, frame: usize) {
         // Restore the torso over the arm roots, fading down into the forearms.
@@ -469,6 +523,7 @@ impl eframe::App for Cat {
                         (i / COLS + 1) as f32 / 3.0,
                     ),
                 );
+                self.tail(ui, rect, i, now);
                 ui.painter().image(
                     self.mouse_texture.id(),
                     rect.translate(self.mouse_travel * (side / 512.0)),

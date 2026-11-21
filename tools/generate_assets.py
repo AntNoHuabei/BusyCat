@@ -40,6 +40,9 @@ for key in KEYS:
 rust+='];\n'
 (ROOT/'src'/'keyboard_layout.rs').write_text(rust,encoding='utf-8')
 
+def tail_svg(tail=0):
+    return f'<path d="M 332 349 C 406 370 392 {281+tail} 432 {290+tail} C 455 {299+tail} 437 {323+tail} 421 {315+tail} C 405 {348+tail} 406 395 345 393 Z" fill="#202733" stroke="#121923" stroke-width="4" stroke-linejoin="round"/><path d="M 383 356 Q 405 {311+tail} 431 {302+tail}" fill="none" stroke="#35404c" stroke-width="5" stroke-linecap="round"/>'
+
 def artwork(blink=0.0, left=0.0, right=0.0, tail=0.0, mouse=0, phone=0, layers=True, mx=0, my=0):
     s = ['<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">']
     def path(d, fill, stroke='none', width=1):
@@ -52,8 +55,7 @@ def artwork(blink=0.0, left=0.0, right=0.0, tail=0.0, mouse=0, phone=0, layers=T
     # Tiny translucent contact shadow, not a baked-in background.
     ellipse(258,449,187,13,'#17212d18')
     # Tail bends only at its tip. All frames keep the keyboard and head anchored.
-    path(f'M 332 349 C 406 370 392 {281+tail} 432 {290+tail} C 455 {299+tail} 437 {323+tail} 421 {315+tail} C 405 {348+tail} 406 395 345 393 Z','#202733','#121923',4)
-    path(f'M 383 356 Q 405 {311+tail} 431 {302+tail}','none','#35404c',5)
+    if layers: s.append(tail_svg(tail))
     # Body and resting back paws.
     path('M 198 252 C 176 280 166 332 166 374 Q 163 407 195 413 L 316 413 Q 349 410 344 374 C 343 321 329 278 310 254 Z','#202733','#121923',4)
     path('M 198 281 Q 176 339 187 381','none','#333d49',5)
@@ -165,6 +167,10 @@ for name,b,l,r,t,m,p in specs:
 mouse_source='<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">'+mouse_svg()+'</svg>'
 (OUT/'mouse.svg').write_text(mouse_source,encoding='utf-8')
 raster(mouse_source).save(OUT/'mouse.png')
+
+tail_source='<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">'+tail_svg()+'</svg>'
+(OUT/'tail.svg').write_text(tail_source,encoding='utf-8')
+raster(tail_source).save(OUT/'tail.png')
 
 atlas = Image.new('RGBA',(512*6,512*3))
 metadata = {'frame_size':[512,512], 'anchor':[256,450], 'frames':{},

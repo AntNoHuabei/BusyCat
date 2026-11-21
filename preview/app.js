@@ -1,3 +1,5 @@
+const tailImage=new Image();tailImage.src="../assets/cat/tail.png";
+let tailPhase=0,tailAmplitude=12,tailTick=0;
 // Interactive local preview. Native Windows global input lives in src/input.rs.
 const canvas=document.querySelector('#cat'),ctx=canvas.getContext('2d');
 const atlas=new Image(),mouse=new Image();atlas.src='../assets/cat/atlas.png';mouse.src='../assets/cat/mouse.png';
@@ -68,6 +70,11 @@ function keyboardPaws(t,i){
 function paint(t){
  const i=frame(t);travel[0]+=((cursor[0]-.5)*36-travel[0])*.16;travel[1]+=((cursor[1]-.5)*24-travel[1])*.16;
  ctx.clearRect(0,0,512,512);
+ const dt=Math.min(.1,tailTick?(t-tailTick)/1000:0);tailTick=t;
+ const amp=i>=12?9:i>=4&&i<=9?19:14,speed=i>=12?1.25:i>=4&&i<=9?2.5:1.75;
+ tailAmplitude+=(amp-tailAmplitude)*(1-Math.exp(-dt*3));tailPhase=(tailPhase+dt*speed)%(Math.PI*2);
+ if(tailImage.complete&&tailImage.naturalWidth)for(let x=320;x<480;x+=2){const w=Math.max(0,Math.min(1,(x-344)/112))**2,dy=(Math.sin(tailPhase)+.18*Math.sin(tailPhase*2-.8))*tailAmplitude*w,dx=Math.cos(tailPhase)*3*w;ctx.drawImage(tailImage,x,256,2,154,x+dx,256+dy,2.5,154);}
+
  if(mouse.complete&&mouse.naturalWidth)ctx.drawImage(mouse,travel[0],travel[1],512,512);
  for(const b of[0,2]){const d=depth(b,t),outline=[[49.5,411.5],[68,411.5],[69,422],[68,430],[64,436],[57,439.5],[49.5,440.5]];for(const [dy,color]of[[1,'#6e7774'],[-1.2+d*2.4,`rgb(${239-d*17},${234-d*17},${221-d*17})`]]){ctx.beginPath();outline.forEach(([x,y],j)=>ctx[j?'lineTo':'moveTo']((b===0?x:96-x)+travel[0],y+dy+travel[1]));ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#a1aaa3';ctx.lineWidth=.8;ctx.stroke();}}
  if(atlas.complete&&atlas.naturalWidth)ctx.drawImage(atlas,(i%6)*512,Math.floor(i/6)*512,512,512,0,0,512,512);
