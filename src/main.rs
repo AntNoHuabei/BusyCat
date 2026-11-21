@@ -122,7 +122,7 @@ impl Cat {
             start: Instant::now(),
             settings: std::env::args().any(|a| a == "--settings"),
             language: settings_ui::Language::default(),
-            cat_size: 420.0,
+            cat_size: 250.0,
             settings_position: None,
             pending_size: None,
             last_resize: Instant::now(),
@@ -783,9 +783,11 @@ fn main() -> eframe::Result {
         renderer: eframe::Renderer::Glow,
         viewport: egui::ViewportBuilder::default()
             .with_title("BusyCat")
-            .with_inner_size([420.0, 420.0])
+            .with_inner_size([250.0, 250.0])
             .with_min_inner_size([250.0, 250.0])
             .with_decorations(false)
+            .with_resizable(false)
+            .with_maximize_button(false)
             .with_transparent(true)
             .with_always_on_top(),
         ..Default::default()
