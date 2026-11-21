@@ -17,7 +17,6 @@ const COLS: usize = 6;
 struct Cat {
     texture: egui::TextureHandle,
     mouse_texture: egui::TextureHandle,
-    paw_texture: egui::TextureHandle,
     phone_faces: Vec<egui::TextureHandle>,
     phone_expression: phone_expression::PhoneExpression,
     input: Receiver<input::Input>,
@@ -57,17 +56,6 @@ impl Cat {
             egui::ColorImage::from_rgba_unmultiplied([512, 512], mouse.as_raw()),
             egui::TextureOptions::LINEAR,
         );
-        let paw = image::load_from_memory(include_bytes!("../assets/cat/cute-paw.png"))
-            .expect("cute paw")
-            .to_rgba8();
-        let paw_texture = cc.egui_ctx.load_texture(
-            "cute-paw",
-            egui::ColorImage::from_rgba_unmultiplied(
-                [paw.width() as usize, paw.height() as usize],
-                paw.as_raw(),
-            ),
-            egui::TextureOptions::LINEAR,
-        );
         let phone_faces = [
             &include_bytes!("../assets/cat/phone_happy_face.png")[..],
             &include_bytes!("../assets/cat/phone_surprise_face.png")[..],
@@ -89,7 +77,6 @@ impl Cat {
         })
         .collect();
         Self {
-            paw_texture,
             phone_faces,
             phone_expression: phone_expression::PhoneExpression::default(),
             texture,
@@ -296,38 +283,23 @@ impl Cat {
             let (x, y, depth) = contact.map_or((rest, 354.0, 0.0), |([x, y], d)| {
                 (x, y - 10.0 - (1.0 - d) * 18.0, d)
             });
-            let points = [
-                p(shoulder, 301.0),
-                p(shoulder, 340.0),
-                p(x, y - 34.0),
-                p(x, y - 10.0),
-            ];
-            for (w, c) in [
-                (34.0, Color32::from_rgb(20, 29, 40)),
-                (29.0, Color32::from_rgb(37, 46, 58)),
-            ] {
-                ui.painter()
-                    .add(egui::epaint::CubicBezierShape::from_points_stroke(
-                        points,
-                        false,
-                        Color32::TRANSPARENT,
-                        egui::Stroke::new(w * scale, c.gamma_multiply(self.opacity)),
-                    ));
-            }
             if contact.is_some() {
                 ui.painter().add(egui::Shape::ellipse_filled(
                     p(x, y + 11.0),
                     Vec2::new(10.0, 2.5) * scale,
-                    Color32::from_black_alpha((depth * 85.0) as u8).gamma_multiply(self.opacity),
+                    Color32::from_black_alpha((depth * 65.0) as u8).gamma_multiply(self.opacity),
                 ));
             }
-            // The tiny rounded toe tips meet the key center; the wrist blends into the arm.
-            let paw_rect = Rect::from_min_size(p(x - 24.0, y - 29.5), Vec2::splat(48.0) * scale);
-            ui.painter().image(
-                self.paw_texture.id(),
-                paw_rect,
-                Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
-                Color32::WHITE.gamma_multiply(self.opacity),
+            self.soft_limb(
+                ui,
+                rect,
+                [
+                    Vec2::new(shoulder, 301.0),
+                    Vec2::new(shoulder, 340.0),
+                    Vec2::new(x, y - 34.0),
+                    Vec2::new(x, y - 7.0),
+                ],
+                Vec2::new(x, y),
             );
         }
     }
@@ -371,49 +343,70 @@ impl Cat {
         }
     }
     fn mouse_arm(&self, ui: &egui::Ui, rect: Rect, now: Instant) {
-        let scale = rect.width() / 512.0;
-        let p = |x: f32, y: f32| rect.min + Vec2::new(x, y) * scale;
         let left = self.activity.button_depth(0, now);
         let right = self.activity.button_depth(1, now);
-        let end = Vec2::new(48.0 + (left - right) * 1.1, 408.0 + left.max(right) * 1.6)
+        let center = Vec2::new(48.0 + (left - right) * 1.3, 423.0 + left.max(right) * 3.0)
             + self.mouse_travel;
-        let points = [
-            p(195.0, 306.0),
-            p(172.0, 345.0),
-            p(end.x + 46.0, end.y - 13.0),
-            p(end.x, end.y),
-        ];
-        for (width, color) in [
-            (46.0, Color32::from_rgb(20, 29, 40)),
-            (40.0, Color32::from_rgb(37, 46, 58)),
+        self.soft_limb(
+            ui,
+            rect,
+            [
+                Vec2::new(195.0, 306.0),
+                Vec2::new(172.0, 345.0),
+                center + Vec2::new(46.0, -26.0),
+                center - Vec2::new(0.0, 7.0),
+            ],
+            center,
+        );
+    }
+    fn soft_limb(&self, ui: &egui::Ui, rect: Rect, curve: [Vec2; 4], center: Vec2) {
+        let scale = rect.width() / 512.0;
+        let p = |v: Vec2| rect.min + v * scale;
+        // Outline the union first, then fill the union. No border crosses the wrist.
+        for (border, color) in [
+            (true, Color32::from_rgb(20, 29, 40)),
+            (false, Color32::from_rgb(37, 46, 58)),
         ] {
+            let c = color.gamma_multiply(self.opacity);
+            let width = if border { 34.0 } else { 29.0 };
             ui.painter()
                 .add(egui::epaint::CubicBezierShape::from_points_stroke(
-                    points,
+                    curve.map(p),
                     false,
                     Color32::TRANSPARENT,
-                    egui::Stroke::new(width * scale, color.gamma_multiply(self.opacity)),
+                    egui::Stroke::new(width * scale, c),
                 ));
-            ui.painter().circle_filled(
-                p(end.x, end.y),
-                width * scale * 0.5,
-                color.gamma_multiply(self.opacity),
+            ui.painter()
+                .circle_filled(p(curve[3]), width * 0.5 * scale, c);
+            ui.painter().add(egui::Shape::ellipse_filled(
+                p(center - Vec2::new(0.0, 1.0)),
+                Vec2::new(
+                    if border { 18.0 } else { 15.5 },
+                    if border { 13.0 } else { 10.5 },
+                ) * scale,
+                c,
+            ));
+            for dx in [-10.5_f32, -3.5, 3.5, 10.5] {
+                let toe = center + Vec2::new(dx, 6.0 - if dx.abs() > 10.0 { 1.0 } else { 0.0 });
+                ui.painter().circle_filled(
+                    p(toe),
+                    if border { 5.0 * scale } else { 3.5 * scale },
+                    c,
+                );
+            }
+        }
+        for dx in [-7.0, 0.0, 7.0] {
+            ui.painter().line_segment(
+                [
+                    p(center + Vec2::new(dx, 6.0)),
+                    p(center + Vec2::new(dx, 7.8)),
+                ],
+                egui::Stroke::new(
+                    0.8 * scale,
+                    Color32::from_rgb(56, 68, 81).gamma_multiply(self.opacity),
+                ),
             );
         }
-        let depth = left.max(right);
-        let paw_rect = Rect::from_min_size(
-            p(
-                24.0 + self.mouse_travel.x + (left - right) * 1.3,
-                397.0 + self.mouse_travel.y + depth * 3.0,
-            ),
-            Vec2::new(48.0 + depth, 48.0 - depth * 2.0) * scale,
-        );
-        ui.painter().image(
-            self.paw_texture.id(),
-            paw_rect,
-            Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
-            Color32::WHITE.gamma_multiply(self.opacity),
-        );
     }
 }
 

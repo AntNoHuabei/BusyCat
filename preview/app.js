@@ -1,6 +1,5 @@
 // Interactive local preview. Native Windows global input lives in src/input.rs.
 const canvas=document.querySelector('#cat'),ctx=canvas.getContext('2d');
-const paw=new Image();paw.src="../assets/cat/cute-paw.png";
 const atlas=new Image(),mouse=new Image();atlas.src='../assets/cat/atlas.png';mouse.src='../assets/cat/mouse.png';
 const downAt=[-1e6,-1e6,-1e6],upAt=[-1e6,-1e6,-1e6];
 function depth(b,t){const smooth=v=>{const x=Math.max(0,Math.min(1,v));return x*x*(3-2*x);};return smooth((t-downAt[b])/35)*(1-smooth((t-Math.max(upAt[b],downAt[b]+70))/120));}
@@ -46,6 +45,15 @@ function paintPhoneFace(t,on){
  const age=(t-phoneStarted)/1000,alpha=Math.max(0,Math.min(1,age/.18,(2.6-age)/.35)),img=phoneFaces[phoneIndex];
  if(alpha&&img.complete&&img.naturalWidth){ctx.globalAlpha=alpha;ctx.drawImage(img,0,0,512,512);ctx.globalAlpha=1;}
 }
+function softLimb(curve,[x,y]){
+ ctx.lineCap='round';ctx.lineJoin='round';
+ for(const[border,c]of[[true,'#141d28'],[false,'#252e3a']]){
+  const w=border?34:29;ctx.beginPath();ctx.moveTo(...curve[0]);ctx.bezierCurveTo(...curve[1],...curve[2],...curve[3]);ctx.lineWidth=w;ctx.strokeStyle=c;ctx.stroke();
+  ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(x,y-1,border?18:15.5,border?13:10.5,0,0,Math.PI*2);ctx.fill();
+  for(const dx of[-10.5,-3.5,3.5,10.5]){ctx.beginPath();ctx.arc(x+dx,y+6-(Math.abs(dx)>10?1:0),border?5:3.5,0,Math.PI*2);ctx.fill();}
+ }
+ for(const dx of[-7,0,7]){ctx.beginPath();ctx.moveTo(x+dx,y+6);ctx.lineTo(x+dx,y+7.8);ctx.strokeStyle='#384451';ctx.lineWidth=.8;ctx.stroke();}
+}
 function keyboardPaws(t,i){
  if(i>=12)return;
  for(const side of[true,false]){
@@ -54,9 +62,7 @@ function keyboardPaws(t,i){
   candidates.sort((a,b)=>(held.has(b[0])-held.has(a[0]))||b[1]-a[1]||b[0]-a[0]);
   const picked=candidates[0],shoulder=side?195:315;let x=side?211:301,y=354,d=0;
   if(picked){const [v,at]=picked,[kx,ky,w,h]=window.busycatKeys.find(k=>k.vk===v).rect,age=(t-at)/1000;d=Math.max(0,Math.min(1,age/.03,held.has(v)?1:(.21-age)/.07));x=kx+w/2;y=ky+h/2-10-(1-d)*18;}
-  ctx.lineCap='round';for(const[w,c]of[[34,'#141d28'],[29,'#252e3a']]){ctx.beginPath();ctx.moveTo(shoulder,301);ctx.bezierCurveTo(shoulder,340,x,y-34,x,y-10);ctx.lineWidth=w;ctx.strokeStyle=c;ctx.stroke();}
-  if(picked){ctx.beginPath();ctx.ellipse(x,y+11,10,2.5,0,0,Math.PI*2);ctx.fillStyle=`rgba(0,0,0,${d/3})`;ctx.fill();}
-  if(paw.complete&&paw.naturalWidth)ctx.drawImage(paw,x-24,y-29.5,48,48);
+  softLimb([[shoulder,301],[shoulder,340],[x,y-34],[x,y-7]],[x,y]);
  }
 }
 function paint(t){
@@ -65,7 +71,7 @@ function paint(t){
  if(mouse.complete&&mouse.naturalWidth)ctx.drawImage(mouse,travel[0],travel[1],512,512);
  for(const b of[0,2]){const d=depth(b,t),outline=[[49.5,411.5],[68,411.5],[69,422],[68,430],[64,436],[57,439.5],[49.5,440.5]];for(const [dy,color]of[[1,'#6e7774'],[-1.2+d*2.4,`rgb(${239-d*17},${234-d*17},${221-d*17})`]]){ctx.beginPath();outline.forEach(([x,y],j)=>ctx[j?'lineTo':'moveTo']((b===0?x:96-x)+travel[0],y+dy+travel[1]));ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#a1aaa3';ctx.lineWidth=.8;ctx.stroke();}}
  if(atlas.complete&&atlas.naturalWidth)ctx.drawImage(atlas,(i%6)*512,Math.floor(i/6)*512,512,512,0,0,512,512);
- if(i===10||i===11){const l=depth(0,t),r=depth(2,t),x=48+travel[0]+(l-r)*1.1,y=408+travel[1]+Math.max(l,r)*1.6;ctx.lineCap='round';for(const [w,c]of[[46,'#141d28'],[40,'#252e3a']]){ctx.beginPath();ctx.moveTo(195,306);ctx.bezierCurveTo(172,345,x+46,y-13,x,y);ctx.lineWidth=w;ctx.strokeStyle=c;ctx.stroke();ctx.beginPath();ctx.arc(x,y,w/2,0,Math.PI*2);ctx.fillStyle=c;ctx.fill();}const d=Math.max(l,r);if(paw.complete&&paw.naturalWidth)ctx.drawImage(paw,24+travel[0]+(l-r)*1.3,397+travel[1]+d*3,48+d,48-d*2);}
+ if(i===10||i===11){const l=depth(0,t),r=depth(2,t),x=48+travel[0]+(l-r)*1.3,y=423+travel[1]+Math.max(l,r)*3;softLimb([[195,306],[172,345],[x+46,y-26],[x,y-7]],[x,y]);}
 
  // Look at the phone while idle, otherwise follow the cursor.
  const openness=i===3?0:i===2?.45:i===14?.3:[5,7,9,13].includes(i)?.85:1;
