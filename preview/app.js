@@ -68,7 +68,7 @@ function keyboardPaws(t,i){
  }
 }
 function paint(t){
- const i=frame(t);travel[0]+=((cursor[0]-.5)*36-travel[0])*.16;travel[1]+=((cursor[1]-.5)*24-travel[1])*.16;
+ const i=frame(t);travel[0]+=((.5-cursor[0])*36-travel[0])*.16;travel[1]+=((.5-cursor[1])*24-travel[1])*.16;
  ctx.clearRect(0,0,512,512);
  const dt=Math.min(.1,tailTick?(t-tailTick)/1000:0);tailTick=t;
  const amp=i>=12?9:i>=4&&i<=9?19:14,speed=i>=12?1.25:i>=4&&i<=9?2.5:1.75;

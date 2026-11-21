@@ -289,8 +289,8 @@ impl Interaction {
 
 pub fn mouse_offset(cursor: [f32; 2]) -> [f32; 2] {
     [
-        (cursor[0].clamp(0.0, 1.0) - 0.5) * 36.0,
-        (cursor[1].clamp(0.0, 1.0) - 0.5) * 24.0,
+        (0.5 - cursor[0].clamp(0.0, 1.0)) * 36.0,
+        (0.5 - cursor[1].clamp(0.0, 1.0)) * 24.0,
     ]
 }
 
@@ -496,10 +496,10 @@ mod tests {
         assert_eq!(s.frame(t + Duration::from_secs(76), 0), 12);
     }
     #[test]
-    fn mouse_travel_is_bounded_and_follows_both_axes() {
+    fn mouse_travel_is_bounded_and_opposes_both_axes() {
         assert_eq!(mouse_offset([0.5, 0.5]), [0.0, 0.0]);
-        assert_eq!(mouse_offset([-5.0, 4.0]), [-18.0, 12.0]);
-        assert_eq!(mouse_offset([1.0, 0.0]), [18.0, -12.0]);
+        assert_eq!(mouse_offset([-5.0, 4.0]), [18.0, -12.0]);
+        assert_eq!(mouse_offset([1.0, 0.0]), [-18.0, 12.0]);
     }
     #[test]
     fn keyboard_keycaps_never_overlap() {
