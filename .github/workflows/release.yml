@@ -1,0 +1,80 @@
+name: Build and publish Windows release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish (for example v0.1.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+
+      - name: Set up Rust
+        shell: pwsh
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          rustup default 1.90.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Check and build
+        shell: pwsh
+        run: |
+          cargo test --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo build --release --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          .\target\release\busycat.exe --check-input
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Package executable and checksums
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist, package -Force | Out-Null
+          Copy-Item target/release/busycat.exe dist/BusyCat.exe
+          Copy-Item target/release/busycat.exe package/BusyCat.exe
+          Copy-Item README.md, LICENSE package/
+          Copy-Item assets/branding/busycat.ico package/BusyCat.ico
+          $zipName = "BusyCat-$env:RELEASE_TAG-windows-x64.zip"
+          Compress-Archive -Path package/* -DestinationPath "dist/$zipName"
+          $checksums = Get-ChildItem dist -File | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          }
+          $checksums | Set-Content dist/SHA256SUMS.txt -Encoding utf8NoBOM
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        run: |
+          gh release view "$env:RELEASE_TAG" *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create "$env:RELEASE_TAG" --verify-tag --draft --title "BusyCat $env:RELEASE_TAG" --notes-file .github/release-notes.md
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          gh release upload "$env:RELEASE_TAG" dist/* --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release edit "$env:RELEASE_TAG" --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
