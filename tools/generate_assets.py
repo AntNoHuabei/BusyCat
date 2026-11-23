@@ -65,14 +65,14 @@ def artwork(blink=0.0, left=0.0, right=0.0, tail=0.0, mouse=0, phone=0, layers=T
     path('M 163 192 C 153 162 153 119 164 99 Q 171 85 186 97 L 214 119 Q 257 109 298 120 L 326 96 Q 340 84 346 102 C 355 128 355 164 349 190 C 365 231 338 280 291 290 Q 256 301 218 289 C 175 283 150 250 155 218 Z','#101010','#050505',4)
     path('M 168 112 Q 164 140 170 158 L 194 132 Z','#8b777b')
     path('M 333 111 Q 341 140 335 158 L 314 132 Z','#8b777b')
-    path('M 184 177 Q 218 149 254 157','none','#2a2a2a',4)
-    path('M 262 157 Q 296 150 321 170','none','#252525',3)
+    # No human-like eyebrows; the reference uses a clean forehead silhouette.
     # Lime eyes; blink frames deform only the eyelids.
     eye_h = max(2, 31 * (1-blink))
     for x in (211,300):
         ellipse(x,211,29,eye_h,'#d8ff3e')
         if blink < .85:
-            ellipse(x+4,214,10,max(1,22*(1-blink)),'#15202b')
+            # Keep the pupils vertical, but soften the slit into a rounder oval.
+            ellipse(x+4,214,12,max(1,17*(1-blink)),'#15202b')
             ellipse(x+8,203,4,max(1,5*(1-blink)),'#f4ffdf')
         else:
             path(f'M {x-25} 211 Q {x} 219 {x+25} 211','none','#a9c879',3)
