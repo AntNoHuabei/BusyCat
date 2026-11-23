@@ -188,7 +188,14 @@ impl Cat {
                     }
                 }
                 tray::Action::TogglePhone => self.activity.idle_phone = !self.activity.idle_phone,
-                tray::Action::Quit => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+                tray::Action::Quit => {
+                    // Disable the Win32 keep-alive timer before closing. Otherwise its
+                    // 100 ms callback can immediately restore the window while eframe
+                    // is still processing the close request, making tray exit appear
+                    // to do nothing on the first click.
+                    window_policy::set_visible(false);
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                }
             }
         }
     }
