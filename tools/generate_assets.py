@@ -41,7 +41,7 @@ rust+='];\n'
 (ROOT/'src'/'keyboard_layout.rs').write_text(rust,encoding='utf-8')
 
 def tail_svg(tail=0):
-    return f'<path d="M 332 349 C 406 370 392 {281+tail} 432 {290+tail} C 455 {299+tail} 437 {323+tail} 421 {315+tail} C 405 {348+tail} 406 395 345 393 Z" fill="#202733" stroke="#121923" stroke-width="4" stroke-linejoin="round"/><path d="M 383 356 Q 405 {311+tail} 431 {302+tail}" fill="none" stroke="#35404c" stroke-width="5" stroke-linecap="round"/>'
+    return f'<path d="M 332 349 C 406 370 392 {281+tail} 432 {290+tail} C 455 {299+tail} 437 {323+tail} 421 {315+tail} C 405 {348+tail} 406 395 345 393 Z" fill="#111111" stroke="#050505" stroke-width="4" stroke-linejoin="round"/><path d="M 383 356 Q 405 {311+tail} 431 {302+tail}" fill="none" stroke="#222222" stroke-width="5" stroke-linecap="round"/>'
 
 def artwork(blink=0.0, left=0.0, right=0.0, tail=0.0, mouse=0, phone=0, layers=True, mx=0, my=0):
     s = ['<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">']
@@ -57,20 +57,20 @@ def artwork(blink=0.0, left=0.0, right=0.0, tail=0.0, mouse=0, phone=0, layers=T
     # Tail bends only at its tip. All frames keep the keyboard and head anchored.
     if layers: s.append(tail_svg(tail))
     # Body and resting back paws.
-    path('M 198 252 C 176 280 166 332 166 374 Q 163 407 195 413 L 316 413 Q 349 410 344 374 C 343 321 329 278 310 254 Z','#202733','#121923',4)
-    path('M 198 281 Q 176 339 187 381','none','#333d49',5)
+    path('M 198 252 C 176 280 166 332 166 374 Q 163 407 195 413 L 316 413 Q 349 410 344 374 C 343 321 329 278 310 254 Z','#111111','#050505',4)
+    path('M 198 281 Q 176 339 187 381','none','#282828',5)
     ellipse(210,398,36,20,'#151d28')
     ellipse(303,398,36,20,'#151d28')
     # Broad rounded face and soft triangular ears.
-    path('M 163 192 C 153 162 153 119 164 99 Q 171 85 186 97 L 214 119 Q 257 109 298 120 L 326 96 Q 340 84 346 102 C 355 128 355 164 349 190 C 365 231 338 280 291 290 Q 256 301 218 289 C 175 283 150 250 155 218 Z','#252e3a','#121923',4)
+    path('M 163 192 C 153 162 153 119 164 99 Q 171 85 186 97 L 214 119 Q 257 109 298 120 L 326 96 Q 340 84 346 102 C 355 128 355 164 349 190 C 365 231 338 280 291 290 Q 256 301 218 289 C 175 283 150 250 155 218 Z','#101010','#050505',4)
     path('M 168 112 Q 164 140 170 158 L 194 132 Z','#8b777b')
     path('M 333 111 Q 341 140 335 158 L 314 132 Z','#8b777b')
-    path('M 184 177 Q 218 149 254 157','none','#3b4652',4)
-    path('M 262 157 Q 296 150 321 170','none','#333e4a',3)
+    path('M 184 177 Q 218 149 254 157','none','#2a2a2a',4)
+    path('M 262 157 Q 296 150 321 170','none','#252525',3)
     # Lime eyes; blink frames deform only the eyelids.
     eye_h = max(2, 31 * (1-blink))
     for x in (211,300):
-        ellipse(x,211,29,eye_h,'#c7e782')
+        ellipse(x,211,29,eye_h,'#d8ff3e')
         if blink < .85:
             ellipse(x+4,214,10,max(1,22*(1-blink)),'#15202b')
             ellipse(x+8,203,4,max(1,5*(1-blink)),'#f4ffdf')
@@ -83,16 +83,16 @@ def artwork(blink=0.0, left=0.0, right=0.0, tail=0.0, mouse=0, phone=0, layers=T
     for d in ['M 184 242 L 143 235','M 184 250 L 140 252','M 324 242 L 365 235','M 324 250 L 368 252']:
         path(d,'none','#83909b',2)
     # Perspective chassis stays fixed; only key orientation faces the cat.
-    path('M 110 375 L 436 375 Q 443 375 445 383 L 459 442 Q 461 452 450 452 L 98 452 Q 88 452 91 442 L 102 384 Q 103 375 110 375 Z','#1b2431','#111923',3)
-    rect(108,380,333,63,4,'#b8c6c7')
+    path('M 110 375 L 436 375 Q 443 375 445 383 L 459 442 Q 461 452 450 452 L 98 452 Q 88 452 91 442 L 102 384 Q 103 375 110 375 Z','#111111','#111923',3)
+    rect(108,380,333,63,4,'#f3f0e8')
     s.append('<g transform="rotate(180 275 409)">')
     for key in KEYS:
         x,y,w,h=key['canonical']
-        color='#dba954' if key['vk'] in (0x1b,0x0d) else '#f5f0df'
+        color='#f4a800' if key['vk'] in (0x1b,0x0d) else '#fffdf4'
         rect(x,y,w,h,1.5,color)
         s.append(f'<text x="{x+w/2}" y="{y+6.8}" text-anchor="middle" font-family="sans-serif" font-size="5.4" fill="#56646a">{escape(key["label"])}</text>')
     s.append('</g>')
-    ellipse(436,447,2,2,'#c7e782')
+    ellipse(436,447,2,2,'#d8ff3e')
     if layers:
         s.append(mouse_svg(mx,my,mouse==2))
     # Forearms are drawn last so a paw can overlap the key caps.
@@ -103,32 +103,34 @@ def artwork(blink=0.0, left=0.0, right=0.0, tail=0.0, mouse=0, phone=0, layers=T
             ex,ey=48+mx,411+my+(3 if mouse==2 else 0)
             curve=f'M 195 306 C 172 345 {ex+46} {ey-13} {ex} {ey}'
             path(curve,'none','#141d28',46)
-            path(curve,'none','#252e3a',40)
-            ellipse(ex,ey,20,20,'#252e3a')
+            path(curve,'none','#101010',40)
+            ellipse(ex,ey,20,20,'#101010')
             for dx in (-10,0,10):
                 path(f'M {ex+dx} {ey+9} l 0 2','none','#404d59',1)
             continue
         if not layers: continue
         px = 211 if is_left else 301
         py = 354 + 38*amount
-        path(f'M {px-24} 296 Q {px-29} 325 {px-24} {py-5} Q {px-27} {py+16} {px} {py+18} Q {px+27} {py+17} {px+24} {py-3} Q {px+25} 326 {px+20} 300 Z','#252e3a','#141d28',3)
+        path(f'M {px-24} 296 Q {px-29} 325 {px-24} {py-5} Q {px-27} {py+16} {px} {py+18} Q {px+27} {py+17} {px+24} {py-3} Q {px+25} 326 {px+20} 300 Z','#101010','#141d28',3)
         path(f'M {px-10} {py+12} l 0 2 M {px} {py+13} l 0 2 M {px+10} {py+12} l 0 2','none','#404d59',1)
+        ellipse(px,py,18,14,'#fffdf4')
+        ellipse(px-7,py+7,4,3,'#f4a8b5'); ellipse(px,py+8,4,3,'#f4a8b5'); ellipse(px+7,py+7,4,3,'#f4a8b5')
         if amount > .85:
             for dx in (-20,0,20):
-                path(f'M {px+dx} {py+25} l {dx*.15} 7','none','#dba954',3)
+                path(f'M {px+dx} {py+25} l {dx*.15} 7','none','#f4a800',3)
     if phone:
         # The cat looks at the screen; the viewer sees the back and camera lenses.
-        path('M 190 298 Q 174 333 221 353 L 238 328 Q 216 320 218 299 Z','#252e3a','#141d28',3)
-        path('M 319 298 Q 337 335 292 353 L 274 329 Q 300 321 294 299 Z','#252e3a','#141d28',3)
+        path('M 190 298 Q 174 333 221 353 L 238 328 Q 216 320 218 299 Z','#101010','#141d28',3)
+        path('M 319 298 Q 337 335 292 353 L 274 329 Q 300 321 294 299 Z','#101010','#141d28',3)
         rect(222,279,68,98,9,'#101923')
         rect(226,283,60,90,6,'#527b79')
         rect(231,289,22,24,5,'#355b5b')
         ellipse(237,296,4,4,'#15232d'); ellipse(246,305,4,4,'#15232d')
         ellipse(257,335,9,10,'#94b8a5')
         # Holding paw and a second paw periodically scrolling over the screen edge.
-        ellipse(224,351,16,13,'#252e3a')
+        ellipse(224,351,16,13,'#101010')
         swipe=phone==2
-        path(f'M 300 344 Q 285 {310 if swipe else 342} 277 {304 if swipe else 334} Q 267 {300 if swipe else 333} 268 {312 if swipe else 345} L 285 363 Q 303 365 300 344 Z','#252e3a','#141d28',2)
+        path(f'M 300 344 Q 285 {310 if swipe else 342} 277 {304 if swipe else 334} Q 267 {300 if swipe else 333} 268 {312 if swipe else 345} L 285 363 Q 303 365 300 344 Z','#101010','#141d28',2)
         if swipe:
             path('M 297 307 l 0 -15 m -4 4 l 4 -4 l 4 4','none','#a8cfac',2)
     s.append('</svg>')
@@ -137,9 +139,9 @@ def artwork(blink=0.0, left=0.0, right=0.0, tail=0.0, mouse=0, phone=0, layers=T
 def mouse_svg(mx=0,my=0,pressed=False):
     return f'''<g transform="translate({mx} {my})">
     <ellipse cx="48" cy="444" rx="24" ry="5" fill="#17212d18"/>
-    <path d="M 27 393 Q 28 375 48 375 Q 68 375 69 393 L 71 423 Q 70 441 48 443 Q 26 441 25 423 Z" fill="#eee9da" stroke="#26323e" stroke-width="3"/>
+    <path d="M 27 393 Q 28 375 48 375 Q 68 375 69 393 L 71 423 Q 70 441 48 443 Q 26 441 25 423 Z" fill="#fffdf4" stroke="#111111" stroke-width="3"/>
     <path d="M 26 410 H 70 M 48 410 V 441" fill="none" stroke="#a6b5b5" stroke-width="2"/>
-    <rect x="45" y="416" width="6" height="13" rx="3" fill="{'#dba954' if pressed else '#81938d'}"/>
+    <rect x="45" y="416" width="6" height="13" rx="3" fill="{'#f4a800' if pressed else '#c7c7bd'}"/>
     </g>'''
 
 

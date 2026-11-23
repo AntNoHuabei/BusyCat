@@ -572,6 +572,19 @@ impl Cat {
                 ),
             );
         }
+        // Match the new reference style: short cream paw pads with soft pink toes.
+        ui.painter().add(egui::Shape::ellipse_filled(
+            p(center - Vec2::new(0.0, 1.0)),
+            Vec2::new(15.5, 10.5) * scale,
+            Color32::from_rgb(255, 253, 244).gamma_multiply(self.opacity),
+        ));
+        for dx in [-7.0_f32, 0.0, 7.0] {
+            ui.painter().circle_filled(
+                p(center + Vec2::new(dx, 6.0)),
+                3.5 * scale,
+                Color32::from_rgb(244, 168, 181).gamma_multiply(self.opacity),
+            );
+        }
     }
 }
 

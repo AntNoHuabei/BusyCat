@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><g transform="translate(0 0)">
     <ellipse cx="48" cy="444" rx="24" ry="5" fill="#17212d18"/>
-    <path d="M 27 393 Q 28 375 48 375 Q 68 375 69 393 L 71 423 Q 70 441 48 443 Q 26 441 25 423 Z" fill="#eee9da" stroke="#26323e" stroke-width="3"/>
+    <path d="M 27 393 Q 28 375 48 375 Q 68 375 69 393 L 71 423 Q 70 441 48 443 Q 26 441 25 423 Z" fill="#fffdf4" stroke="#111111" stroke-width="3"/>
     <path d="M 26 410 H 70 M 48 410 V 441" fill="none" stroke="#a6b5b5" stroke-width="2"/>
-    <rect x="45" y="416" width="6" height="13" rx="3" fill="#81938d"/>
+    <rect x="45" y="416" width="6" height="13" rx="3" fill="#c7c7bd"/>
     </g></svg>
