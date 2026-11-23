@@ -20,6 +20,11 @@ pub fn listen(ctx: Option<eframe::egui::Context>) -> Receiver<Input> {
     rx
 }
 
+pub fn stop() {
+    #[cfg(windows)]
+    platform::stop();
+}
+
 #[cfg(target_os = "windows")]
 mod platform {
     use super::Input;
@@ -28,6 +33,18 @@ mod platform {
         sync::{OnceLock, mpsc::Sender},
     };
     static SENDER: OnceLock<(Sender<Input>, Option<eframe::egui::Context>)> = OnceLock::new();
+    static THREAD: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+    static STOPPING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    pub fn stop() {
+        use std::sync::atomic::Ordering;
+        STOPPING.store(true, Ordering::SeqCst);
+        let thread = THREAD.load(Ordering::SeqCst);
+        if thread != 0 {
+            unsafe {
+                PostThreadMessageW(thread, 0x12, 0, 0);
+            }
+        }
+    }
     type Hook = *mut c_void;
     type Proc = unsafe extern "system" fn(i32, usize, isize) -> isize;
     #[repr(C)]
@@ -73,13 +90,20 @@ mod platform {
         fn UnhookWindowsHookEx(hook: Hook) -> i32;
         fn GetMessageW(msg: *mut Msg, window: *mut c_void, min: u32, max: u32) -> i32;
         fn GetSystemMetrics(index: i32) -> i32;
+        fn PeekMessageW(msg: *mut Msg, window: *mut c_void, min: u32, max: u32, remove: u32)
+        -> i32;
+        fn PostThreadMessageW(thread: u32, message: u32, wparam: usize, lparam: isize) -> i32;
     }
     #[link(name = "kernel32")]
     unsafe extern "system" {
         fn GetModuleHandleW(name: *const u16) -> *mut c_void;
         fn GetLastError() -> u32;
+        fn GetCurrentThreadId() -> u32;
     }
     fn emit(event: Input) {
+        if STOPPING.load(std::sync::atomic::Ordering::SeqCst) {
+            return;
+        }
         if let Some((tx, ctx)) = SENDER.get() {
             let _ = tx.send(event);
             if let Some(ctx) = ctx {
@@ -155,6 +179,12 @@ mod platform {
     pub fn run(tx: Sender<Input>, ctx: Option<eframe::egui::Context>) {
         let _ = SENDER.set((tx, ctx));
         unsafe {
+            let mut queue: Msg = std::mem::zeroed();
+            PeekMessageW(&mut queue, std::ptr::null_mut(), 0, 0, 0);
+            THREAD.store(GetCurrentThreadId(), std::sync::atomic::Ordering::SeqCst);
+            if STOPPING.load(std::sync::atomic::Ordering::SeqCst) {
+                return;
+            }
             let module = GetModuleHandleW(std::ptr::null());
             let keyboard = SetWindowsHookExW(13, Some(keyboard), module, 0);
             let key_error = if keyboard.is_null() {
@@ -177,6 +207,7 @@ mod platform {
             if !mouse.is_null() {
                 UnhookWindowsHookEx(mouse);
             }
+            THREAD.store(0, std::sync::atomic::Ordering::SeqCst);
         }
     }
 }

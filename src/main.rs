@@ -4,6 +4,7 @@ mod interaction;
 mod keyboard_layout;
 mod phone_expression;
 mod settings_ui;
+mod statistics;
 mod tray;
 mod window_policy;
 
@@ -31,6 +32,8 @@ struct Cat {
     phone_expression: phone_expression::PhoneExpression,
     input: Receiver<input::Input>,
     activity: Interaction,
+    statistics: statistics::Statistics,
+    quitting: bool,
     status: String,
     start: Instant,
     settings: bool,
@@ -131,6 +134,8 @@ impl Cat {
             mouse_texture,
             input: input::listen(Some(cc.egui_ctx.clone())),
             activity: Interaction::default(),
+            statistics: statistics::Statistics::default(),
+            quitting: false,
             status: "Connecting input…".into(),
             start: Instant::now(),
             settings: std::env::args().any(|a| a == "--settings"),
@@ -194,7 +199,19 @@ impl Cat {
                     // is still processing the close request, making tray exit appear
                     // to do nothing on the first click.
                     window_policy::set_visible(false);
-                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    input::stop();
+                    self.quitting = true;
+                    // Hidden/minimized viewports may not redraw to consume Close.
+                    ctx.send_viewport_cmd_to(
+                        egui::ViewportId::ROOT,
+                        egui::ViewportCommand::Visible(true),
+                    );
+                    ctx.send_viewport_cmd_to(
+                        egui::ViewportId::ROOT,
+                        egui::ViewportCommand::Minimized(false),
+                    );
+                    ctx.send_viewport_cmd_to(egui::ViewportId::ROOT, egui::ViewportCommand::Close);
+                    ctx.request_repaint_of(egui::ViewportId::ROOT);
                 }
             }
         }
@@ -205,6 +222,7 @@ impl Cat {
                 self.status = s;
                 continue;
             }
+            self.statistics.record(&event);
             if !self.mouse_feedback
                 && matches!(
                     event,
@@ -294,7 +312,7 @@ impl Cat {
                 let pupil = pos(x + 4.0 + self.gaze.x, 214.0 + self.gaze.y * openness);
                 ui.painter().add(egui::Shape::ellipse_filled(
                     pupil,
-                    Vec2::new(10.0, 22.0 * openness) * scale,
+                    Vec2::new(16.0, 18.0 * openness) * scale,
                     fade(Color32::from_rgb(21, 32, 43)),
                 ));
                 ui.painter().add(egui::Shape::ellipse_filled(
@@ -594,6 +612,9 @@ impl eframe::App for Cat {
     }
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         self.tray_events(ctx);
+        if self.quitting {
+            return;
+        }
         self.events(ctx);
         let now = Instant::now();
         self.demo_tick(now);
@@ -669,7 +690,12 @@ impl eframe::App for Cat {
                         .button(lang.text("退出 BusyCat", "Quit BusyCat"))
                         .clicked()
                     {
-                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                        window_policy::set_visible(false);
+                        input::stop();
+                        ctx.send_viewport_cmd_to(
+                            egui::ViewportId::ROOT,
+                            egui::ViewportCommand::Close,
+                        );
                     }
                 });
             });
@@ -681,7 +707,7 @@ impl eframe::App for Cat {
                     .unwrap_or(Rect::from_min_size(Pos2::ZERO, Vec2::splat(self.cat_size)))
             });
             let work = settings_ui::work_area(cat, ctx.pixels_per_point());
-            let panel_size = Vec2::new(360.0, 520.0);
+            let panel_size = Vec2::new(360.0, 680.0);
             // Dock once on opening. Following every resize moves the slider under the cursor.
             let position = *self.settings_position.get_or_insert_with(|| {
                 settings_ui::position(cat, work, panel_size + Vec2::new(16.0, 40.0))
@@ -798,6 +824,8 @@ impl eframe::App for Cat {
                                 .text(lang.text("空闲秒数", "Idle seconds")),
                         );
                         ui.separator();
+                        self.statistics.show(ui, lang);
+                        ui.separator();
                         ui.small(lang.text(
                             "拖动猫咪移动 · 双击或右键打开设置",
                             "Drag cat to move · Double-click / right-click for settings",
@@ -819,6 +847,8 @@ impl eframe::App for Cat {
                                 .button(lang.text("退出 BusyCat", "Quit BusyCat"))
                                 .clicked()
                             {
+                                window_policy::set_visible(false);
+                                input::stop();
                                 settings_ctx.send_viewport_cmd_to(
                                     egui::ViewportId::ROOT,
                                     egui::ViewportCommand::Close,
@@ -838,7 +868,7 @@ impl eframe::App for Cat {
         {
             let cat = ctx.input(|i| i.viewport().outer_rect);
             if let (Some(cat), Some(panel)) = (cat, self.settings_position) {
-                let target = settings_ui::resize_away(cat, panel, Vec2::new(376.0, 560.0), size);
+                let target = settings_ui::resize_away(cat, panel, Vec2::new(376.0, 720.0), size);
                 ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(target.min));
             }
             ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(Vec2::splat(size)));
