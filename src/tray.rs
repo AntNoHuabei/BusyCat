@@ -74,14 +74,23 @@ mod platform {
             let menu_tx = tx.clone();
             MenuEvent::set_event_handler(Some(move |event: MenuEvent| {
                 if let Some((_, action)) = actions.iter().find(|(id, _)| *id == event.id) {
+                    if matches!(action, Action::Quit) {
+                        // Do not queue exit behind an egui redraw. Native tray
+                        // menus can dispatch while the pet viewport is inactive.
+                        crate::window_policy::shutdown();
+                        if let Err(error) = crate::preferences::save_current_size() {
+                            eprintln!("Could not save cat size: {error}");
+                        }
+                        crate::window_policy::force_exit();
+                    }
                     let _ = menu_tx.send(*action);
-                    wake.request_repaint();
+                    wake.request_repaint_of(eframe::egui::ViewportId::ROOT);
                 }
             }));
             TrayIconEvent::set_event_handler(Some(move |event: TrayIconEvent| {
                 if matches!(event, TrayIconEvent::DoubleClick { .. }) {
                     let _ = tx.send(Action::Settings);
-                    ctx.request_repaint();
+                    ctx.request_repaint_of(eframe::egui::ViewportId::ROOT);
                 }
             }));
             Ok(Self {

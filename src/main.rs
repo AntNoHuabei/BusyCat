@@ -5,6 +5,7 @@ mod keyboard_layout;
 mod phone_expression;
 mod preferences;
 mod settings_ui;
+mod single_instance;
 mod statistics;
 mod tray;
 mod window_policy;
@@ -34,7 +35,6 @@ struct Cat {
     input: Receiver<input::Input>,
     activity: Interaction,
     statistics: statistics::Statistics,
-    quitting: bool,
     status: String,
     start: Instant,
     settings: bool,
@@ -136,7 +136,6 @@ impl Cat {
             input: input::listen(Some(cc.egui_ctx.clone())),
             activity: Interaction::default(),
             statistics: statistics::Statistics::default(),
-            quitting: false,
             status: "Connecting input…".into(),
             start: Instant::now(),
             settings: std::env::args().any(|a| a == "--settings"),
@@ -200,16 +199,14 @@ impl Cat {
             }
         }
     }
-    fn quit(&mut self, ctx: &egui::Context) {
-        self.quitting = true;
-        self.settings = false;
+    fn quit(&mut self, _: &egui::Context) -> ! {
         window_policy::shutdown();
-        input::stop();
         if let Err(error) = preferences::save_size(self.cat_size) {
             eprintln!("Could not save cat size: {error}");
         }
-        ctx.send_viewport_cmd_to(egui::ViewportId::ROOT, egui::ViewportCommand::Close);
-        ctx.request_repaint_of(egui::ViewportId::ROOT);
+        // Explicit user exit must not wait for hooks, GL, or window teardown.
+        // The OS releases hooks, window handles, and the single-instance mutex.
+        window_policy::force_exit();
     }
     fn events(&mut self, ctx: &egui::Context) {
         while let Ok(event) = self.input.try_recv() {
@@ -616,9 +613,6 @@ impl eframe::App for Cat {
     }
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         self.tray_events(ctx);
-        if self.quitting {
-            return;
-        }
         self.events(ctx);
         // Shell shortcuts and foreground changes can swallow key-up events.
         // Reconcile held keys so they cannot indefinitely suppress the mouse paw.
@@ -780,6 +774,7 @@ impl eframe::App for Cat {
                             .changed()
                         {
                             self.pending_size = Some(self.cat_size);
+                            preferences::remember_size(self.cat_size);
                         }
                         ui.add(
                             egui::Slider::new(&mut self.opacity, 0.3..=1.0)
@@ -911,7 +906,13 @@ fn main() -> eframe::Result {
         eprintln!("Input hook initialization timed out");
         std::process::exit(1);
     }
+    let _instance = match single_instance::Instance::acquire() {
+        Ok(Some(instance)) => instance,
+        Ok(None) => return Ok(()),
+        Err(error) => return Err(eframe::Error::AppCreation(Box::new(error))),
+    };
     let size = preferences::load_size();
+    preferences::remember_size(size);
     let options = eframe::NativeOptions {
         renderer: eframe::Renderer::Glow,
         viewport: egui::ViewportBuilder::default()

@@ -99,3 +99,17 @@ pub fn install(_: &eframe::CreationContext<'_>) {}
 pub fn set_visible(_: bool) {}
 #[cfg(not(windows))]
 pub fn shutdown() {}
+
+pub fn force_exit() -> ! {
+    #[cfg(windows)]
+    unsafe {
+        #[link(name = "kernel32")]
+        unsafe extern "system" {
+            fn GetCurrentProcess() -> *mut std::ffi::c_void;
+            fn TerminateProcess(process: *mut std::ffi::c_void, code: u32) -> i32;
+        }
+        // Terminating ourselves bypasses DLL detach and renderer destruction.
+        TerminateProcess(GetCurrentProcess(), 0);
+    }
+    std::process::exit(0)
+}

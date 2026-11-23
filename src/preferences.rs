@@ -1,4 +1,15 @@
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU32, Ordering};
+
+static CURRENT_SIZE: AtomicU32 = AtomicU32::new(250.0_f32.to_bits());
+
+pub fn remember_size(size: f32) {
+    CURRENT_SIZE.store(size.to_bits(), Ordering::Relaxed);
+}
+
+pub fn save_current_size() -> std::io::Result<()> {
+    save_size(f32::from_bits(CURRENT_SIZE.load(Ordering::Relaxed)))
+}
 
 fn path() -> Option<PathBuf> {
     std::env::var_os("LOCALAPPDATA")

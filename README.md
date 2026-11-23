@@ -44,6 +44,8 @@ cargo run --release --locked
 
 ### 使用方式
 
+同一 Windows 登录会话只运行一个 BusyCat；重复启动会直接退出。程序退出或意外终止后可正常重新启动。
+
 | 操作 | 效果 |
 | --- | --- |
 | 拖动猫咪 | 移动桌宠窗口 |
@@ -149,6 +151,8 @@ cargo run --release --locked
 The first build downloads dependencies from crates.io. The executable is `target/release/busycat.exe`. Artwork and icons are embedded, so the EXE can be copied and run on its own. Chinese text uses Microsoft YaHei supplied by Windows.
 
 ### Controls
+
+Only one BusyCat instance runs per Windows login session. Duplicate launches exit immediately. You can restart normally after exit or an unexpected termination.
 
 | Action | Result |
 | --- | --- |

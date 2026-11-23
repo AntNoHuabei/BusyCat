@@ -1,24 +1,24 @@
-BusyCat v0.1.5 · Windows 10/11 x64
+BusyCat v0.1.6 · Windows 10/11 x64
 
 ### 简体中文
-- 最小尺寸降至 125 px，设置滑块支持 125–800 px。
-- 退出时保存猫咪尺寸，下次启动自动恢复。
-- 校准切换软件后的按键状态，避免残留状态阻止鼠标爪跟随；按住 Ctrl、Alt、Shift、Win 时仍可触发鼠标动作。
-- 统一退出流程：先停用保活定时器并立即隐藏猫咪，再保存尺寸、停止监听和关闭窗口。
+- 新增单实例限制：同一 Windows 登录会话只运行一个 BusyCat，重复启动直接退出；正常退出或意外终止后可重新启动。
+- 托盘退出直接在原生菜单回调执行，保存尺寸后终止自身进程，不再等待窗口刷新或鼠标移到猫身上。
+- 设置窗口和猫咪右键菜单退出同样保存尺寸并直接终止进程，跳过渲染器退出清理。
+- 托盘其他操作显式请求主窗口刷新。
 
 ### English
-- Reduce the minimum cat size to 125 px; the slider supports 125–800 px.
-- Save cat size on exit and restore it at startup.
-- Reconcile held keys after application switches to prevent stale states from blocking the mouse paw; modifier keys allow mouse reactions.
-- Disable the visibility timer and hide the cat before saving size, stopping hooks, and closing the window.
+- Allow only one BusyCat per Windows login session; duplicate launches exit immediately, and the instance guard is released when the process ends.
+- Exit directly from the native tray menu callback after saving cat size, without waiting for a viewport redraw or hovering over the cat.
+- Settings and pet context-menu exit also save size and terminate the process directly, bypassing renderer teardown.
+- Explicitly repaint the root viewport for other tray actions.
 
 ### Downloads
 - BusyCat.exe: standalone executable / 独立可执行文件
-- BusyCat-v0.1.5-windows-x64.zip: EXE + README + MIT LICENSE + icon / 便携包
+- BusyCat-v0.1.6-windows-x64.zip: EXE + README + MIT LICENSE + icon / 便携包
 - SHA256SUMS.txt: SHA-256 checksums / 校验值
 
-F8 toggles click-through. Double-click the cat or tray icon for settings.
-F8 切换鼠标穿透；双击猫咪或托盘图标打开设置。
+升级前请先完全退出旧版，再运行新版。
+Fully exit the old version before launching this update.
 
-MIT License. Only cat size is persisted; session statistics reset on restart.
-仅保存猫咪尺寸；键鼠统计在重启后清空。
+MIT License. Cat size is persisted; session statistics reset on restart.
+保存猫咪尺寸；键鼠统计在重启后清空。
