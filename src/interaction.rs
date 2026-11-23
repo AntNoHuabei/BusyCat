@@ -202,7 +202,10 @@ impl Interaction {
         let keyboard = self
             .keyboard_at
             .is_some_and(|t| now.duration_since(t) < Duration::from_millis(220));
-        let held = self.keys.iter().any(|&vk| vk != 0x77);
+        let held = self
+            .keys
+            .iter()
+            .any(|&vk| !matches!(vk, 0x77 | 0x10..=0x12 | 0x5b..=0x5c | 0xa0..=0xa5));
         !keyboard && !held && (mouse || !self.buttons.is_empty())
     }
     // Preserve very short clicks, then ease each button back independently.
@@ -588,6 +591,18 @@ mod tests {
             },
             t
         ));
+    }
+    #[test]
+    fn modifier_shortcuts_do_not_keep_paw_off_mouse() {
+        for vk in [0x10, 0x11, 0x12, 0x5b, 0x5c, 0xa0, 0xa5] {
+            let mut s = Interaction::default();
+            let t = Instant::now();
+            s.handle(&Input::Key { vk, down: true }, t);
+            let moved = t + Duration::from_millis(300);
+            s.handle(&Input::Move { x: 0.8, y: 0.2 }, moved);
+            assert_eq!(s.frame(moved, 0), 10, "modifier {vk:#x}");
+            assert_eq!(s.cursor, [0.8, 0.2]);
+        }
     }
     #[test]
     fn mouse_has_separate_pose_and_wheel_feedback() {

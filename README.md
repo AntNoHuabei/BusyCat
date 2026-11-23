@@ -23,7 +23,7 @@ BusyCat 是一个用 Rust 编写的 Windows 桌面宠物。你打字时，小黑
 - **面对面的视角**：鼠标在画面左侧，键盘空格靠近猫身，键帽文字朝向猫咪；鼠标移动与用户方向相反，猫爪平滑跟随。
 - **空闲刷手机**：默认 15 秒无操作后刷手机，随机出现偷笑、惊讶、嫌弃、困倦和害羞表情；有键鼠输入立即恢复。
 - **持续摆尾**：尾根固定、尾尖轻摆，打字和刷手机时有不同的节奏。
-- **独立设置窗口**：设置打开在猫咪旁边，支持简体中文 / English、尺寸滑块（250–800 px）、透明度和动作开关。默认尺寸为 250 px。
+- **独立设置窗口**：设置打开在猫咪旁边，支持简体中文 / English、尺寸滑块（125–800 px）、透明度和动作开关。默认尺寸为 250 px。
 - **桌面常驻**：隐藏任务栏与 Alt+Tab 图标；Win+D 显示桌面后自动恢复置顶，不抢输入焦点，仍支持从托盘主动隐藏。
 - **键鼠统计**：设置中查看本次运行的键盘按下、鼠标左 / 右 / 其他键点击和滚轮格数；支持清零，长按不重复计数，退出后清空。
 - **系统托盘**：显示 / 隐藏猫咪、打开设置、切换鼠标穿透、按键气泡、空闲刷手机，以及退出。
@@ -110,7 +110,7 @@ cargo build --release --locked
 
 输入事件仅用于本地动画和短暂气泡，不写入文件、不上传网络。气泡显示物理按键名称，不显示输入法组词结果。程序忽略系统标记的注入输入，不监听 Windows 安全桌面。
 
-全局输入和托盘当前仅实现 Windows。设置暂不持久化，也没有开机自启功能。键盘展示为五排紧凑布局，未绘制的功能键、方向键和数字小键盘仍可通过气泡反馈。
+全局输入和托盘当前仅实现 Windows。尺寸会在退出时保存，下次启动自动恢复；其他设置暂不持久化，也没有开机自启功能。键盘展示为五排紧凑布局，未绘制的功能键、方向键和数字小键盘仍可通过气泡反馈。
 
 ### 许可证
 
@@ -129,7 +129,7 @@ BusyCat is a Windows desktop pet written in Rust. The little black cat reaches f
 - **Face-to-face orientation**: the mouse sits on the viewer's left, the spacebar is closest to the cat, and key legends face the cat. Mouse movement is reversed relative to yours, with smooth paw tracking.
 - **Idle phone browsing**: after 15 seconds of inactivity by default, the cat browses its phone with random happy, surprised, unimpressed, sleepy, and shy expressions. Input wakes it immediately.
 - **Continuous tail movement**: the tail tip sways while its base stays anchored, with different rhythms for typing and phone browsing.
-- **Separate settings window**: opens beside the cat, with Simplified Chinese / English, a live size slider (250–800 px), opacity, and animation options. The default size is 250 px.
+- **Separate settings window**: opens beside the cat, with Simplified Chinese / English, a live size slider (125–800 px), opacity, and animation options. The default size is 250 px.
 - **Desktop presence**: hidden from the taskbar and Alt+Tab; automatically restores its topmost position after Win+D without taking input focus. You can still hide it through the tray.
 - **Input statistics**: session key presses, left / right / other mouse clicks, and wheel notches in Settings; reset anytime. Key repeats and demo events are excluded; counters are not persisted.
 - **System tray controls**: show / hide the cat, open settings, toggle click-through, key labels, idle phone browsing, or quit.
@@ -216,7 +216,7 @@ cargo build --release --locked
 
 Input events are used locally for animations and temporary labels. They are not written to files or uploaded. Labels show physical keys, not IME-composed text. System-marked injected events are ignored, and the Windows secure desktop is not monitored.
 
-Global input and system tray support are currently Windows-only. Settings are not persisted, and automatic startup is not implemented. The illustrated keyboard has a compact five-row layout; function keys, arrow keys, and numpad keys without drawn keycaps still produce labels.
+Global input and system tray support are currently Windows-only. Cat size is saved on exit and restored on startup. Other settings are not persisted, and automatic startup is not implemented. The illustrated keyboard has a compact five-row layout; function keys, arrow keys, and numpad keys without drawn keycaps still produce labels.
 
 ### License
 

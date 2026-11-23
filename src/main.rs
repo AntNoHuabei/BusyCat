@@ -3,6 +3,7 @@ mod input;
 mod interaction;
 mod keyboard_layout;
 mod phone_expression;
+mod preferences;
 mod settings_ui;
 mod statistics;
 mod tray;
@@ -140,7 +141,7 @@ impl Cat {
             start: Instant::now(),
             settings: std::env::args().any(|a| a == "--settings"),
             language: settings_ui::Language::default(),
-            cat_size: 250.0,
+            cat_size: preferences::load_size(),
             settings_position: None,
             pending_size: None,
             last_resize: Instant::now(),
@@ -194,27 +195,21 @@ impl Cat {
                 }
                 tray::Action::TogglePhone => self.activity.idle_phone = !self.activity.idle_phone,
                 tray::Action::Quit => {
-                    // Disable the Win32 keep-alive timer before closing. Otherwise its
-                    // 100 ms callback can immediately restore the window while eframe
-                    // is still processing the close request, making tray exit appear
-                    // to do nothing on the first click.
-                    window_policy::set_visible(false);
-                    input::stop();
-                    self.quitting = true;
-                    // Hidden/minimized viewports may not redraw to consume Close.
-                    ctx.send_viewport_cmd_to(
-                        egui::ViewportId::ROOT,
-                        egui::ViewportCommand::Visible(true),
-                    );
-                    ctx.send_viewport_cmd_to(
-                        egui::ViewportId::ROOT,
-                        egui::ViewportCommand::Minimized(false),
-                    );
-                    ctx.send_viewport_cmd_to(egui::ViewportId::ROOT, egui::ViewportCommand::Close);
-                    ctx.request_repaint_of(egui::ViewportId::ROOT);
+                    self.quit(ctx);
                 }
             }
         }
+    }
+    fn quit(&mut self, ctx: &egui::Context) {
+        self.quitting = true;
+        self.settings = false;
+        window_policy::shutdown();
+        input::stop();
+        if let Err(error) = preferences::save_size(self.cat_size) {
+            eprintln!("Could not save cat size: {error}");
+        }
+        ctx.send_viewport_cmd_to(egui::ViewportId::ROOT, egui::ViewportCommand::Close);
+        ctx.request_repaint_of(egui::ViewportId::ROOT);
     }
     fn events(&mut self, ctx: &egui::Context) {
         while let Ok(event) = self.input.try_recv() {
@@ -606,6 +601,15 @@ impl Cat {
     }
 }
 
+impl Drop for Cat {
+    fn drop(&mut self) {
+        input::stop();
+        if let Err(error) = preferences::save_size(self.cat_size) {
+            eprintln!("Could not save cat size: {error}");
+        }
+    }
+}
+
 impl eframe::App for Cat {
     fn clear_color(&self, _: &egui::Visuals) -> [f32; 4] {
         [0.0; 4]
@@ -616,6 +620,20 @@ impl eframe::App for Cat {
             return;
         }
         self.events(ctx);
+        // Shell shortcuts and foreground changes can swallow key-up events.
+        // Reconcile held keys so they cannot indefinitely suppress the mouse paw.
+        let released: Vec<_> = self
+            .activity
+            .keys
+            .iter()
+            .copied()
+            .filter(|&vk| !input::key_is_down(vk))
+            .collect();
+        for vk in released {
+            let event = input::Input::Key { vk, down: false };
+            self.activity.handle(&event, Instant::now());
+            self.statistics.record(&event);
+        }
         let now = Instant::now();
         self.demo_tick(now);
         let offset = interaction::mouse_offset(self.activity.cursor);
@@ -690,12 +708,7 @@ impl eframe::App for Cat {
                         .button(lang.text("退出 BusyCat", "Quit BusyCat"))
                         .clicked()
                     {
-                        window_policy::set_visible(false);
-                        input::stop();
-                        ctx.send_viewport_cmd_to(
-                            egui::ViewportId::ROOT,
-                            egui::ViewportCommand::Close,
-                        );
+                        self.quit(ctx);
                     }
                 });
             });
@@ -760,7 +773,7 @@ impl eframe::App for Cat {
                         ui.label(lang.text("猫咪尺寸（实时预览）", "Cat size (live preview)"));
                         if ui
                             .add(
-                                egui::Slider::new(&mut self.cat_size, 250.0..=800.0)
+                                egui::Slider::new(&mut self.cat_size, 125.0..=800.0)
                                     .suffix(" px")
                                     .step_by(1.0),
                             )
@@ -847,12 +860,7 @@ impl eframe::App for Cat {
                                 .button(lang.text("退出 BusyCat", "Quit BusyCat"))
                                 .clicked()
                             {
-                                window_policy::set_visible(false);
-                                input::stop();
-                                settings_ctx.send_viewport_cmd_to(
-                                    egui::ViewportId::ROOT,
-                                    egui::ViewportCommand::Close,
-                                );
+                                self.quit(settings_ctx);
                             }
                         });
                     });
@@ -903,6 +911,7 @@ fn main() -> eframe::Result {
         eprintln!("Input hook initialization timed out");
         std::process::exit(1);
     }
+    let size = preferences::load_size();
     let options = eframe::NativeOptions {
         renderer: eframe::Renderer::Glow,
         viewport: egui::ViewportBuilder::default()
@@ -916,8 +925,8 @@ fn main() -> eframe::Result {
                 width: 256,
                 height: 256,
             })
-            .with_inner_size([250.0, 250.0])
-            .with_min_inner_size([250.0, 250.0])
+            .with_inner_size([size, size])
+            .with_min_inner_size([125.0, 125.0])
             .with_decorations(false)
             .with_resizable(false)
             .with_maximize_button(false)

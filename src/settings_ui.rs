@@ -110,7 +110,7 @@ mod tests {
         let size = Vec2::new(376.0, 560.0);
         for panel in [Pos2::new(936.0, 200.0), Pos2::new(108.0, 200.0)] {
             let mut cat = Rect::from_min_size(Pos2::new(500.0, 200.0), Vec2::splat(420.0));
-            for value in [800.0, 250.0, 600.0, 420.0] {
+            for value in [800.0, 125.0, 600.0, 420.0] {
                 let next = resize_away(cat, panel, size, value);
                 assert!(!next.intersects(Rect::from_min_size(panel, size)));
                 if panel.x > cat.right() {

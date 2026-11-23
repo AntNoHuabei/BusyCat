@@ -25,6 +25,23 @@ pub fn stop() {
     platform::stop();
 }
 
+pub fn key_is_down(vk: u32) -> bool {
+    #[cfg(windows)]
+    {
+        #[link(name = "user32")]
+        unsafe extern "system" {
+            fn GetAsyncKeyState(vk: i32) -> i16;
+        }
+        // Only the high bit represents the current physical state.
+        unsafe { GetAsyncKeyState(vk as i32) < 0 }
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = vk;
+        true
+    }
+}
+
 #[cfg(target_os = "windows")]
 mod platform {
     use super::Input;

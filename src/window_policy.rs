@@ -5,6 +5,7 @@ mod native {
     use std::sync::atomic::{AtomicBool, Ordering};
 
     static VISIBLE: AtomicBool = AtomicBool::new(true);
+    static WINDOW: std::sync::atomic::AtomicIsize = std::sync::atomic::AtomicIsize::new(0);
     const TIMER: usize = 0xBC01;
     #[link(name = "user32")]
     unsafe extern "system" {
@@ -15,6 +16,8 @@ mod native {
             callback: unsafe extern "system" fn(isize, u32, usize, u32),
         ) -> usize;
         fn IsIconic(hwnd: isize) -> i32;
+        fn KillTimer(hwnd: isize, id: usize) -> i32;
+        fn PostMessageW(hwnd: isize, message: u32, wparam: usize, lparam: isize) -> i32;
         fn IsWindowVisible(hwnd: isize) -> i32;
         fn ShowWindow(hwnd: isize, command: i32) -> i32;
         fn SetWindowPos(
@@ -64,6 +67,7 @@ mod native {
             && let RawWindowHandle::Win32(handle) = handle.as_raw()
         {
             let hwnd = handle.hwnd.get();
+            WINDOW.store(hwnd, Ordering::Relaxed);
             unsafe {
                 // Tool windows stay out of both the taskbar and Alt+Tab.
                 let style = GetWindowLongPtrW(hwnd, -20);
@@ -75,10 +79,23 @@ mod native {
     pub fn set_visible(visible: bool) {
         VISIBLE.store(visible, Ordering::Relaxed);
     }
+    pub fn shutdown() {
+        VISIBLE.store(false, Ordering::Relaxed);
+        let hwnd = WINDOW.swap(0, Ordering::Relaxed);
+        if hwnd != 0 {
+            unsafe {
+                KillTimer(hwnd, TIMER);
+                ShowWindow(hwnd, 0); // Hide immediately, before renderer teardown.
+                PostMessageW(hwnd, 0x10, 0, 0); // WM_CLOSE also works without a redraw.
+            }
+        }
+    }
 }
 #[cfg(windows)]
-pub use native::{install, set_visible};
+pub use native::{install, set_visible, shutdown};
 #[cfg(not(windows))]
 pub fn install(_: &eframe::CreationContext<'_>) {}
 #[cfg(not(windows))]
 pub fn set_visible(_: bool) {}
+#[cfg(not(windows))]
+pub fn shutdown() {}
